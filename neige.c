@@ -188,11 +188,23 @@ void refresh_game(){
 }
 
 
-int main() {
+int main(int argc, char** argv) {
 	
 	int i, j, k, startMenu, fd;
 	int quitter = FALSE;
 	char* mapBuffer = malloc(1044 * sizeof(char));
+
+	if(argc != 3){
+		fprintf(stderr, "mauvaise utilisation: ./neige [<type>] [<fichier>]\n");
+		exit(EXIT_FAILURE);
+	}else{
+		if( strcmp(argv[1], "-N") == 0){
+			createSim(argv[2]);
+		}
+		if( strcmp(argv[1], "-S") == 0){
+			
+		}
+	}
 
 	nbFlocon = 0;
 
@@ -217,7 +229,8 @@ int main() {
 	
 	scrollok(fenetre_log, TRUE);
 
-	fd = readMap("map1", mapBuffer);
+	fd = openFile("map1");
+	readMap(fd, mapBuffer);
 	
 	k = 0;
 	for(i = 0; i < mHeight; i++){
