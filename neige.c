@@ -192,14 +192,22 @@ int main(int argc, char** argv) {
 	
 	int i, j, k, startMenu, fd;
 	int quitter = FALSE;
-	char* mapBuffer = malloc(1044 * sizeof(char));
+	char mapBuffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2)];
 
 	if(argc != 3){
 		fprintf(stderr, "mauvaise utilisation: ./neige [<type>] [<fichier>]\n");
 		exit(EXIT_FAILURE);
 	}else{
 		if( strcmp(argv[1], "-N") == 0){
-			createSim(argv[2]);
+			if(strcmp(getFileExt(argv[2]), "bin") == 0){
+				createSim(argv[2]);
+				fprintf(stdout, "le fichier de simulation est créé: %s.sim\n", getFileBase(argv[2]));
+				exit(EXIT_SUCCESS);
+			}else{
+				fprintf(stderr, "le decor doit etre un fichier .bin\n");
+				exit(EXIT_FAILURE);
+			}
+			
 		}
 		if( strcmp(argv[1], "-S") == 0){
 			
@@ -229,7 +237,7 @@ int main(int argc, char** argv) {
 	
 	scrollok(fenetre_log, TRUE);
 
-	fd = openFile("map1");
+	fd = openFile(argv[2]);
 	readMap(fd, mapBuffer);
 	
 	k = 0;

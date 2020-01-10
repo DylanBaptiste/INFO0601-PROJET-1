@@ -41,6 +41,20 @@ int openFile(char* path);
  */
 void readMap(int fd, char* buff);
 
+/**
+ * @brief get l'extention du fichier
+ * 
+ * @param path chemin du fichier
+ * @return char* l'extention du fichier
+ */
+char* getFileExt(const char* path);
 
+/**
+ * @brief get le chemin sans l'extention
+ * 
+ * @param path le chemin du fichier
+ * @return char* le chemin sans l'extention
+ */
+char* getFileBase (const char* path);
 
 #endif

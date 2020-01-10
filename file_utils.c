@@ -5,6 +5,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
+#include <string.h>
+
+#include "file_utils.h"
+
+#define MAXFNAME 2048
 
 /**
  * @brief ouvre un fichier
@@ -27,12 +32,12 @@ int openFile(char* path)
         if (fd >= 0 ){
             /*printf("file initialise\n");*/
             /*constructeurFile(fd); Cree une map 30*15 pleine de 0*/
-            fprintf(stderr, "le fichier %s n'existe pas", path);
+            fprintf(stderr, "le fichier %s n'existe pas\n", path);
             exit(EXIT_FAILURE);
         }
         else{
             /*perror("Erreur lors de l'ouverture du fichier\n");*/
-            fprintf(stderr, "erreur lors de l'ouverture du fichier %s", path);
+            fprintf(stderr, "erreur lors de l'ouverture du fichier %s\n", path);
             exit(EXIT_FAILURE);
         }
     }
@@ -51,7 +56,7 @@ void writeMap(char* buffer, int fd)
 
     for(i = 0; i < 1044; i++){
         if(write(fd, &buffer, sizeof(char)) == -1){
-            fprintf(stderr, "erreur lors de la copie de la map");
+            fprintf(stderr, "erreur lors de la copie de la map\n");
             exit(EXIT_FAILURE);
         }    
     }
@@ -84,11 +89,16 @@ void readMap(int fd, char* buff)
  */
 void createSim(char* decor){
     
+    int decor_d, sim_d;
     char buffer[1044];
-    
+    char* path = malloc(sizeof(char) * strlen(decor) + 1);
+
+    strcat(path, getFileBase(decor));
+    strcat(path, ".sim");
+
     /*On créé un fichier de simulation et on ouvre le decor*/
-    int decor_d = openFile(decor);
-    int sim_d = creat("sim.sim", S_IRWXU);
+    decor_d = openFile(decor);
+    sim_d = creat(path, S_IRWXU);
 
     /*On lit le decor dans le buffer*/
     readMap(decor_d, buffer);
@@ -96,4 +106,39 @@ void createSim(char* decor){
     /*On copie le buffer dans la simulation*/
     writeMap(buffer, sim_d);
 
+    printf("%s\n", buffer);
+
+}
+
+/**
+ * @brief get l'extention du fichier
+ * 
+ * @param path chemin du fichier
+ * @return char* l'extention du fichier
+ */
+char* getFileExt(const char* path){
+    char *dot = strrchr(path, '.');
+    if(!dot || dot == path) return "";
+    return dot + 1;
+}
+
+/**
+ * @brief get le chemin sans l'extention
+ * 
+ * @param path le chemin du fichier
+ * @return char* le chemin sans l'extention
+ */
+char* getFileBase (const char* path) {
+    
+    int i;
+    size_t extSize  = strlen(getFileExt(path)) + 1;
+    size_t baseSize = strlen(path) - extSize + 1;
+    char* base = (char*)malloc(baseSize);
+    
+    for(i = 0; (i < baseSize - 1) && (i < MAXFNAME); ++i){
+        base[i] = path[i];
+    }
+    base[i++] = '\0';
+
+    return base;
 }
