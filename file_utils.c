@@ -71,13 +71,13 @@ void writeMap(char* buffer, int fd)
  */
 void readMap(int fd, char* buff)
 {
-    int taille = 0;
-    char lecture[1044];
+    /*int taille = 0;
+    char lecture[1044];*/
     
     if(fd > 0){
-        while( read(fd, &lecture, sizeof(char)) != 0)
+        while( read(fd, &buff, sizeof(char)) != 0)
         {
-            buff[++taille] = *lecture;
+           /* buff[++taille] = *lecture;*/
         }
     }
 }
@@ -150,9 +150,13 @@ char* getFileBase (const char* path) {
  * @param y 
  * @param fd file descriptor du fichier a modifier
  */
-void insertElement(int fd, int x, int y, char* element){
-    off_t off = lseek(fd, 20*x+y, SEEK_SET);
-    write(fd, &element, sizeof(char));
+void insertElement(int fd, int x, int y, char element){
+    /*20 == largeur de la matrice*/
+    lseek(fd, 20*x+y, SEEK_SET);
+    if(write(fd, &element, sizeof(char)) == 0){
+        fprintf(stderr, "erreur lors de l'update de la simulation");
+        exit(EXIT_FAILURE);
+    }
 }
 
-
+/*file size avec lseek seek_end*/

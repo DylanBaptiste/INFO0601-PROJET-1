@@ -25,7 +25,10 @@
 #define SPAWN_RATIO	5 		/*1 chance sur SPAWN_RATIO qu'un flocon apparaisse dans chaque case de la prochaine generation*/
 #define START_MENU	2
 
-int nbFlocon, mWidth, mHeight, nbGeneration;
+#define SIM_MODE 0
+#define DEC_MODE 1
+
+int nbFlocon, mWidth, mHeight, nbGeneration, fd_sim, fd_dec, mode;
 char** matrice;
 WINDOW *fenetre_log, *fenetre_jeu, *fenetre_etat;
 
@@ -33,6 +36,15 @@ void placer_element(int y, int x, char c){
 	/* TODO update la map ici */
 	matrice[y][x] = c;
 	mvwprintw(fenetre_jeu, y, x, "%c", c);
+	if(mode == DEC_MODE){
+		insertElement(fd_dec, y, x, c);
+	}else{
+		insertElement(fd_sim, y, x, c);
+	}
+
+	wprintw(fenetre_log, "\n(%d, %d)", y, x);
+	wrefresh(fenetre_log);
+	
 }
 
 int is_free(int y, int x){
@@ -190,30 +202,10 @@ void refresh_game(){
 
 int main(int argc, char** argv) {
 	
-	int i, j, k, startMenu, fd;
+	int i, j, k, startMenu; /*sourisX, sourisY;*/
 	int quitter = FALSE;
-	char mapBuffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2)];
-
-	if(argc != 3){
-		fprintf(stderr, "mauvaise utilisation: ./neige [<type>] [<fichier>]\n");
-		exit(EXIT_FAILURE);
-	}else{
-		if( strcmp(argv[1], "-N") == 0){
-			if(strcmp(getFileExt(argv[2]), "bin") == 0){
-				createSim(argv[2]);
-				fprintf(stdout, "le fichier de simulation est créé: %s.sim\n", getFileBase(argv[2]));
-				exit(EXIT_SUCCESS);
-			}else{
-				fprintf(stderr, "le decor doit etre un fichier .bin\n");
-				exit(EXIT_FAILURE);
-			}
-			
-		}
-		if( strcmp(argv[1], "-S") == 0){
-			
-		}
-	}
-
+	char* mapBuffer = calloc((LARGEUR2 - 2)*(HAUTEUR2 - 2), sizeof(char));
+	
 	nbFlocon = 0;
 
 	fenetre_log  = NULL;
@@ -228,59 +220,138 @@ int main(int argc, char** argv) {
 		matrice[i] = (char*)malloc(mWidth * sizeof(char));
 	}
 
+	if(argc != 3){
+		fprintf(stderr, "mauvaise utilisation: ./neige [<type>] [<path>]\n");
+		exit(EXIT_FAILURE);
+	}else{
+		if(strcmp(argv[1], "-N") != 0 && strcmp(argv[1], "-S") != 0){
+			fprintf(stderr, "mauvaise utilisation: ./neige [<type>] [<fichier>]\ntype:\n\t-N créer un nouveau decor\n\t-S lancer/reprendre une simulation\n");
+			exit(EXIT_FAILURE);
+		}
+		if( strcmp(argv[1], "-N") == 0 ){
+			if(strcmp(getFileExt(argv[2]), "bin") == 0){
+				fd_dec = openFile(argv[2]);
+				createSim(argv[2]);
+				/*fprintf(stdout, "le fichier de simulation est créé: %s.sim\n", getFileBase(argv[2]));
+				exit(EXIT_SUCCESS);*/
+				mode = DEC_MODE;
+			}else{
+				fprintf(stderr, "le decor doit etre un fichier .bin\n");
+				exit(EXIT_FAILURE);
+			}
+			
+		}
+		if( strcmp(argv[1], "-S") == 0 ){
+			
+			if(strcmp(getFileExt(argv[2]), "sim") == 0){
+				fd_sim = openFile(argv[2]);
+				mode = SIM_MODE;
+			}
+			else{
+				fprintf(stderr, "la simulation doit etre un fichier .sim\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+
+	mode == SIM_MODE ? readMap(fd_sim, mapBuffer) : readMap(fd_dec, mapBuffer);
+
+
+	k=0;
+	for(i = 0; i < mHeight; i++){
+		for(j = 0; j < mWidth; j++, k++){
+			printf("%c,", mapBuffer[k]);
+			if(mapBuffer[k] != '1'){
+				mapBuffer[k] = '2';
+			}
+		}
+	}
 
 	ncurses_initialiser();
 
-    create_box(&fenetre_log,  HAUTEUR1, LARGEUR1, POSY1, POSX1);
-    create_box(&fenetre_jeu,  HAUTEUR2, LARGEUR2, POSY2, POSX2);
-    create_box(&fenetre_etat, HAUTEUR3, LARGEUR3, POSY3, POSX3);
+	create_box(&fenetre_log,  HAUTEUR1, LARGEUR1, POSY1, POSX1);
+	create_box(&fenetre_jeu,  HAUTEUR2, LARGEUR2, POSY2, POSX2);
+	create_box(&fenetre_etat, HAUTEUR3, LARGEUR3, POSY3, POSX3);
 	
 	scrollok(fenetre_log, TRUE);
 
-	fd = openFile(argv[2]);
-	readMap(fd, mapBuffer);
+	
 	
 	k = 0;
 	for(i = 0; i < mHeight; i++){
 		for(j = 0; j < mWidth; j++, k++){
-			/* Chargement de la map */
+			/* Chargement de la simulation */
 			placer_element(i, j, mapBuffer[k]);
 			/*printf("%c,", mapBuffer[k]);*/
 			/*printf("%c,", matrice[i][j]);*/
 		}
 	}
 	
-	startMenu = START_MENU;
-	mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
-	mvwprintw(fenetre_etat, ++startMenu, 0, "Quitter:    q");
-	mvwprintw(fenetre_etat, ++startMenu, 0, "Rafraichir: r");
-	mvwprintw(fenetre_etat, ++startMenu, 0, "Generer:    ESPACE");
-	++startMenu;
-	mvwprintw(fenetre_etat, ++startMenu, 0, "Neige:      X");
-	mvwprintw(fenetre_etat, ++startMenu, 0, "Obstacle:   -");
-	mvwprintw(fenetre_etat, ++startMenu, 0, "Ratio:      1/%d", SPAWN_RATIO);
-	mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
-	wrefresh(fenetre_etat);
+	if(mode == SIM_MODE){
+		startMenu = START_MENU;
+		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Quitter:    q");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Rafraichir: r");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Generer:    ESPACE");
+		++startMenu;
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Neige:      X");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Obstacle:   -");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Ratio:      1/%d", SPAWN_RATIO);
+		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
+		wrefresh(fenetre_etat);
 
-
-	ncurses_souris();
-
-
-	while(quitter == FALSE) {
+		while(quitter == FALSE) {
 		
-		
-		i = getch();
-		spawn();
+			i = getch();
+			spawn();
 
-		if(i == 'q' || i == 'Q')
-			quitter = TRUE;
-		
-		if(i == 'r' || i == 'R'){
-			refresh_game();
-		}
+			if(i == 'q' || i == 'Q')
+				quitter = TRUE;
+			
+			if(i == 'r' || i == 'R'){
+				refresh_game();
+			}
 				
-	}
+		}
+		close(fd_sim);
 
+	}
+	else{
+
+		startMenu = START_MENU;
+		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Quitter:    q");
+		++startMenu;
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Obstacle:   -");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
+		wrefresh(fenetre_etat);
+
+		ncurses_souris();
+		/*ncurses_couleurs();
+		wbkgd(fenetre_jeu, COLOR_PAIR(1));*/
+		wrefresh(fenetre_jeu);
+		while(quitter == FALSE) {
+		
+			i = getch();   
+			
+			/*wprintw(fenetre_log, "1");
+			wrefresh(fenetre_log);
+			if( (i == KEY_MOUSE) && (souris_getpos(&sourisX, &sourisY, NULL) == OK)){
+				wprintw(fenetre_log, "test");
+				wrefresh(fenetre_log);
+				if((sourisX >= POSX2) && (sourisX < POSX2 + LARGEUR2) && (sourisY >= POSY2) && (sourisY < POSY2 + HAUTEUR2))
+					placer_element(sourisY, sourisX, '-');
+			}*/
+
+			if(i == 'q' || i == 'Q')
+				quitter = TRUE;
+			
+		}
+
+		
+		close(fd_dec);
+	}
+	
 	/*
 	for(i = 0; i < mWidth; i++){
 		free(matrice[i]);
@@ -290,7 +361,7 @@ int main(int argc, char** argv) {
 	delwin(fenetre_jeu);
 	delwin(fenetre_etat);
 	*/
-	close(fd);
+	
 	ncurses_stopper();
 
 	return EXIT_SUCCESS;

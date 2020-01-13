@@ -57,4 +57,15 @@ char* getFileExt(const char* path);
  */
 char* getFileBase (const char* path);
 
+/**
+ * @brief insert une valeur à une position spécifié
+ * 
+ * @param x 
+ * @param y 
+ * @param fd file descriptor du fichier a modifier
+ */
+void insertElement(int fd, int x, int y, char element);
+
+
+
 #endif
