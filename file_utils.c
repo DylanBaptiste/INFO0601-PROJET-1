@@ -31,9 +31,9 @@ int openFile(char* path)
         
         if (fd >= 0 ){
             /*printf("file initialise\n");*/
-            /*constructeurFile(fd); Cree une map 30*15 pleine de 0*/
-            fprintf(stderr, "le fichier %s n'existe pas\n", path);
-            exit(EXIT_FAILURE);
+            constructeurFile(fd); /*Cree une map 30*15 pleine de 0*/
+            /*fprintf(stderr, "le fichier %s n'existe pas\n", path);
+            exit(EXIT_FAILURE);*/
         }
         else{
             /*perror("Erreur lors de l'ouverture du fichier\n");*/
@@ -50,12 +50,29 @@ int openFile(char* path)
  * @param buffer message à ecrire
  * @param fd file descriptor du fichier à remplire
  */
-void writeMap(char* buffer, int fd)
+void writeMap(unsigned char* buffer, int fd)
 {
     int i;
+    
+    for(i = 0; i < 1044; i++){
+        if(write(fd, buffer+i, sizeof(unsigned char)) == -1){
+            fprintf(stderr, "erreur lors de la copie de la map\n");
+            exit(EXIT_FAILURE);
+        }    
+    }
+}
+    
+/**
+ * Construit un decor vide
+ */
+void constructeurFile(int fd)
+{
+    int i;
+    unsigned char caseVide = 0;
+
 
     for(i = 0; i < 1044; i++){
-        if(write(fd, &buffer, sizeof(char)) == -1){
+        if(write(fd, &caseVide, sizeof(unsigned char)) == -1){
             fprintf(stderr, "erreur lors de la copie de la map\n");
             exit(EXIT_FAILURE);
         }    
@@ -69,16 +86,18 @@ void writeMap(char* buffer, int fd)
  * @param buff le buffer qui doit recevoir le contenu du fichier
  * @return int 
  */
-void readMap(int fd, char* buff)
+void readMap(int fd, unsigned char** buff/* titre et pos(x,y) */)
 {
     /*int taille = 0;
     char lecture[1044];*/
-    
+    lseek(fd, 0, SEEK_SET);
     if(fd > 0){
-        while( read(fd, &buff, sizeof(char)) != 0)
+        /*lire uniquement la map 0 1 2 dans le buff*/
+        while( read(fd, *buff, sizeof(unsigned char)) != 0)
         {
            /* buff[++taille] = *lecture;*/
         }
+        /*ensuite lire les 2 autre info, (+taille pour le tire au debut?)*/
     }
 }
 
@@ -90,7 +109,7 @@ void readMap(int fd, char* buff)
 void createSim(char* decor){
     
     int decor_d, sim_d;
-    char buffer[1044];
+	unsigned char* buffer = malloc(1044*sizeof(unsigned char));
     char* path = malloc(sizeof(char) * strlen(decor) + 1);
 
     strcat(path, getFileBase(decor));
@@ -101,7 +120,7 @@ void createSim(char* decor){
     sim_d = creat(path, S_IRWXU);
 
     /*On lit le decor dans le buffer*/
-    readMap(decor_d, buffer);
+    readMap(decor_d, &buffer);
     
     /*On copie le buffer dans la simulation*/
     writeMap(buffer, sim_d);
@@ -150,10 +169,10 @@ char* getFileBase (const char* path) {
  * @param y 
  * @param fd file descriptor du fichier a modifier
  */
-void insertElement(int fd, int x, int y, char element){
+void insertElement(int fd, int x, int y, unsigned char element){
     /*20 == largeur de la matrice*/
-    lseek(fd, 20*x+y, SEEK_SET);
-    if(write(fd, &element, sizeof(char)) == 0){
+    lseek(fd, 60*x+y, SEEK_SET);
+    if(write(fd, &element, sizeof(unsigned char)) == -1){
         fprintf(stderr, "erreur lors de l'update de la simulation");
         exit(EXIT_FAILURE);
     }

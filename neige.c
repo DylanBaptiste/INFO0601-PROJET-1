@@ -29,26 +29,46 @@
 #define DEC_MODE 1
 
 int nbFlocon, mWidth, mHeight, nbGeneration, fd_sim, fd_dec, mode;
-char** matrice;
+unsigned char** matrice;
 WINDOW *fenetre_log, *fenetre_jeu, *fenetre_etat;
 
-void placer_element(int y, int x, char c){
-	/* TODO update la map ici */
+void placer_element(int y, int x, unsigned char c){
+	
 	matrice[y][x] = c;
-	mvwprintw(fenetre_jeu, y, x, "%c", c);
+	
+	switch (c)
+	{
+		case 0:
+			mvwprintw(fenetre_jeu, y, x, " ");
+			break;
+		case 1 :
+			mvwprintw(fenetre_jeu, y, x, "X");
+			break;
+		case 2:
+			mvwprintw(fenetre_jeu, y, x, "-");
+			break;
+	
+		default:
+			mvwprintw(fenetre_jeu, y, x, "?");
+			break;
+	}
+	
 	if(mode == DEC_MODE){
 		insertElement(fd_dec, y, x, c);
 	}else{
 		insertElement(fd_sim, y, x, c);
 	}
 
-	wprintw(fenetre_log, "\n(%d, %d)", y, x);
+	/*wprintw(fenetre_log, "\n(%d, %d)", y, x);*/
 	wrefresh(fenetre_log);
 	
 }
 
 int is_free(int y, int x){
-	return matrice[y][x] == ' ';
+	wprintw(fenetre_log, "\n(%d, %d) => %d", y, x, matrice[y][x]);
+	wrefresh(fenetre_log);
+
+	return matrice[y][x] == 0;
 }
 
 void spawn(){
@@ -66,19 +86,19 @@ void spawn(){
 			
 			isStuck = FALSE;
 
-			if(matrice[i][j] == 'X'){
+			if(matrice[i][j] == 1){
 				
 				if(rand() % 2){
 					if(j > 0){
 
 						if(is_free(i+1, j-1)){
-							placer_element(i+1, j-1, 'X');
+							placer_element(i+1, j-1, 1);
 						}else{
 							if(is_free(i+1, j+1)){
-								placer_element(i+1, j+1, 'X');
+								placer_element(i+1, j+1, 1);
 							}else{
 								if(is_free(i+1, j)){
-									placer_element(i+1, j, 'X');
+									placer_element(i+1, j, 1);
 								}else{
 									/*le flocon est blocké*/
 									isStuck = TRUE;
@@ -89,10 +109,10 @@ void spawn(){
 					}else{
 
 						if(is_free(i+1, j+1)){
-							placer_element(i+1, j+1, 'X');
+							placer_element(i+1, j+1, 1);
 						}else{
 							if(is_free(i+1, j)){
-								placer_element(i+1, j, 'X');
+								placer_element(i+1, j, 1);
 							}else{
 								/*le flocon est blocké*/
 								isStuck = TRUE;
@@ -106,14 +126,14 @@ void spawn(){
 					if(j < mWidth){
 
 						if(is_free(i+1, j+1)){
-							placer_element(i+1, j+1, 'X');
+							placer_element(i+1, j+1, 1);
 						}else{
 
 							if(is_free(i+1, j-1)){
-								placer_element(i+1, j-1, 'X');
+								placer_element(i+1, j-1, 1);
 							}else{
 								if(is_free(i+1, j)){
-									placer_element(i+1, j, 'X');
+									placer_element(i+1, j, 1);
 								}else{
 									/*le flocon est blocké*/
 									isStuck = TRUE;
@@ -123,10 +143,10 @@ void spawn(){
 					}else{
 
 						if(is_free(i+1, j-1)){
-							placer_element(i+1, j-1, 'X');
+							placer_element(i+1, j-1, 1);
 						}else{
 							if(is_free(i+1, j)){
-								placer_element(i+1, j, 'X');
+								placer_element(i+1, j, 1);
 							}else{
 								/*le flocon est blocké*/
 								isStuck = TRUE;
@@ -137,10 +157,11 @@ void spawn(){
 				}
 				
 				if(!isStuck){
-					placer_element(i, j, ' ');
+					placer_element(i, j, 0);
 				}
 				
-				
+				getch();
+				wrefresh(fenetre_jeu);
 			}
 			
 		}
@@ -152,7 +173,7 @@ void spawn(){
 	for(j = 0; j < mWidth; j++){
 		
 		if( is_free(0, j) && (rand() % SPAWN_RATIO + 1) == SPAWN_RATIO){
-			placer_element(0, j, 'X');
+			placer_element(0, j, 1);
 			mvwprintw(fenetre_etat,0,0, "Nb flocons: %d     ", nbFlocon++);
 			wrefresh(fenetre_etat);
 			nbNew++;
@@ -183,8 +204,8 @@ void refresh_game(){
 	
 	for(i = 0; i < HAUTEUR2; i++){
 		for(j = 0; j < LARGEUR2; j++){
-			if(matrice[i][j] == 'X'){
-				placer_element(i, j, ' ');
+			if(matrice[i][j] == 1){
+				placer_element(i, j, 0);
 				nbFlocon = 0;
 			} 
 		}
@@ -204,7 +225,7 @@ int main(int argc, char** argv) {
 	
 	int i, j, k, startMenu; /*sourisX, sourisY;*/
 	int quitter = FALSE;
-	char* mapBuffer = calloc((LARGEUR2 - 2)*(HAUTEUR2 - 2), sizeof(char));
+	unsigned char* mapBuffer = calloc((LARGEUR2 - 2)*(HAUTEUR2 - 2), sizeof(unsigned char));
 	
 	nbFlocon = 0;
 
@@ -215,9 +236,9 @@ int main(int argc, char** argv) {
 	mWidth  = LARGEUR2 - 2;
 	mHeight = HAUTEUR2 - 2;
 
-	matrice = (char**)malloc(mHeight * sizeof(char*));
+	matrice = (unsigned char**)malloc(mHeight * sizeof( unsigned char*));
 	for(i = 0; i < mWidth; i++){
-		matrice[i] = (char*)malloc(mWidth * sizeof(char));
+		matrice[i] = (unsigned char*)malloc(mWidth * sizeof(unsigned char));
 	}
 
 	if(argc != 3){
@@ -231,6 +252,7 @@ int main(int argc, char** argv) {
 		if( strcmp(argv[1], "-N") == 0 ){
 			if(strcmp(getFileExt(argv[2]), "bin") == 0){
 				fd_dec = openFile(argv[2]);
+				close(fd_dec);
 				createSim(argv[2]);
 				/*fprintf(stdout, "le fichier de simulation est créé: %s.sim\n", getFileBase(argv[2]));
 				exit(EXIT_SUCCESS);*/
@@ -254,18 +276,16 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	mode == SIM_MODE ? readMap(fd_sim, mapBuffer) : readMap(fd_dec, mapBuffer);
+	mode == SIM_MODE ? readMap(fd_sim, &mapBuffer) : readMap(fd_dec, &mapBuffer);
 
 
 	k=0;
-	for(i = 0; i < mHeight; i++){
+	/*for(i = 0; i < mHeight; i++){
 		for(j = 0; j < mWidth; j++, k++){
 			printf("%c,", mapBuffer[k]);
-			if(mapBuffer[k] != '1'){
-				mapBuffer[k] = '2';
-			}
+				mapBuffer[k] = 0;
 		}
-	}
+	}*/
 
 	ncurses_initialiser();
 
