@@ -1,7 +1,6 @@
 #include <string.h>
 #include <time.h>
-#include <stdlib.h>     
-#include <ncurses.h> 
+#include <stdlib.h> 
 #include <unistd.h>
 
 #include "ncurses_utils.h"
@@ -12,10 +11,10 @@
 #define POSX1    0
 #define POSY1    0
 
-#define LARGEUR2 62 
+#define LARGEUR2 60 
 #define HAUTEUR2 20  
 #define POSX2    POSX1
-#define POSY2    HAUTEUR1 
+#define POSY2    HAUTEUR1
 
 #define LARGEUR3 ( LARGEUR1 - LARGEUR2 )
 #define HAUTEUR3 HAUTEUR2  
@@ -28,7 +27,7 @@
 #define SIM_MODE 0
 #define DEC_MODE 1
 
-int nbFlocon, mWidth, mHeight, nbGeneration, fd_sim, fd_dec, mode;
+int nbFlocon, mWidth, mHeight, nbGeneration, fd, mode;
 unsigned char** matrice;
 WINDOW *fenetre_log, *fenetre_jeu, *fenetre_etat;
 
@@ -45,7 +44,7 @@ void placer_element(int y, int x, unsigned char c){
 			mvwprintw(fenetre_jeu, y, x, "X");
 			break;
 		case 2:
-			mvwprintw(fenetre_jeu, y, x, "-");
+			mvwprintw(fenetre_jeu, y, x, "+");
 			break;
 	
 		default:
@@ -53,21 +52,16 @@ void placer_element(int y, int x, unsigned char c){
 			break;
 	}
 	
-	if(mode == DEC_MODE){
-		insertElement(fd_dec, y, x, c);
-	}else{
-		insertElement(fd_sim, y, x, c);
-	}
+	
+	insertElement(fd, y, x, c);
+	
 
-	/*wprintw(fenetre_log, "\n(%d, %d)", y, x);*/
+	wprintw(fenetre_log, "\n(%d, %d) %d", y, x, c);
 	wrefresh(fenetre_log);
 	
 }
 
 int is_free(int y, int x){
-	wprintw(fenetre_log, "\n(%d, %d) => %d", y, x, matrice[y][x]);
-	wrefresh(fenetre_log);
-
 	return matrice[y][x] == 0;
 }
 
@@ -225,12 +219,12 @@ void refresh_game(){
 }
 
 
+
 int main(int argc, char** argv) {
 	
-	int i, j, k, startMenu; /*sourisX, sourisY;*/
+	int i, j, k, startMenu, sourisX, sourisY, bouton;
 	int quitter = FALSE;
-	unsigned char mapBuffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1];  /*= malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1 * sizeof(unsigned char));*/
-	mapBuffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2)-1] = 9;
+	unsigned char mapBuffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2)];  /*= malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1 * sizeof(unsigned char));*/
 	nbFlocon = 0;
 
 	fenetre_log  = NULL;
@@ -255,8 +249,8 @@ int main(int argc, char** argv) {
 		}
 		if( strcmp(argv[1], "-N") == 0 ){
 			if(strcmp(getFileExt(argv[2]), "bin") == 0){
-				fd_dec = openFile(argv[2]);
-				close(fd_dec);
+				fd = openFile(argv[2]);
+				close(fd);
 				createSim(argv[2]);
 				/*fprintf(stdout, "le fichier de simulation est créé: %s.sim\n", getFileBase(argv[2]));
 				exit(EXIT_SUCCESS);*/
@@ -270,7 +264,7 @@ int main(int argc, char** argv) {
 		if( strcmp(argv[1], "-S") == 0 ){
 			
 			if(strcmp(getFileExt(argv[2]), "sim") == 0){
-				fd_sim = openFile(argv[2]);
+				fd = openFile(argv[2]);
 				mode = SIM_MODE;
 			}
 			else{
@@ -280,26 +274,12 @@ int main(int argc, char** argv) {
 		}
 	}
 	
-	printf("\n\n");
-
-	k=0;
-	for(i = 0; i < mHeight; i++){
+	readMap(fd, mapBuffer, &nbFlocon);
+	
+	for(i = 0, k = 0; i < mHeight; i++){
 		for(j = 0; j < mWidth; j++, k++){
-			
-			printf("%d ", mapBuffer[k]);
-			mapBuffer[k] = 0;
+			printf("%d", mapBuffer[k]);
 			if((( (k % (LARGEUR2-2)) - (LARGEUR2-3) ))==0){ printf("\n");}
-		}
-	}
-	printf("\n\n");
-	
-	mode == SIM_MODE ? readMap(fd_sim, mapBuffer, &nbFlocon) : readMap(fd_dec, mapBuffer, &nbFlocon);
-	
-	k=0;
-	for(i = 0; i < mHeight; i++){
-		for(j = 0; j < mWidth; j++, k++){
-			printf("%d ", mapBuffer[k]);
-				if((( (k % (LARGEUR2-2)) - (LARGEUR2-3) ))==0){ printf("\n");}
 		}
 	}
 	printf("\n\n");
@@ -349,6 +329,7 @@ int main(int argc, char** argv) {
 		while(quitter == FALSE) {
 		
 			i = getch();
+			
 			spawn();
 
 			if(i == 'q' || i == 'Q')
@@ -359,7 +340,7 @@ int main(int argc, char** argv) {
 			}
 				
 		}
-		close(fd_sim);
+		close(fd);
 
 	}
 	else{
@@ -377,9 +358,25 @@ int main(int argc, char** argv) {
 		wbkgd(fenetre_jeu, COLOR_PAIR(1));*/
 		wrefresh(fenetre_jeu);
 		while(quitter == FALSE) {
-		
-			i = getch();   
-			
+			i = getch();
+			if( (int)i == KEY_MOUSE){
+				if(souris_getpos(&sourisX, &sourisY, &bouton) == OK){
+					if( (sourisX > 0 && sourisX < (LARGEUR2 - 2) ) && ( (sourisY - POSY2) < HAUTEUR2 - 1 && (sourisY - POSY2)  > 0) ){
+						wprintw(fenetre_log, "\n(%d, %d)", sourisX, sourisY - POSY2);
+						if( is_free(sourisY - POSY2, sourisX)){
+							placer_element(sourisY - POSY2, sourisX, 2);
+						}else{
+							placer_element(sourisY - POSY2, sourisX , 0);
+						}
+						wrefresh(fenetre_jeu);
+						
+						wrefresh(fenetre_log);
+					}
+					
+
+				}
+				
+			}
 			/*wprintw(fenetre_log, "1");
 			wrefresh(fenetre_log);
 			if( (i == KEY_MOUSE) && (souris_getpos(&sourisX, &sourisY, NULL) == OK)){
@@ -395,7 +392,7 @@ int main(int argc, char** argv) {
 		}
 
 		
-		close(fd_dec);
+		close(fd);
 	}
 	
 	/*

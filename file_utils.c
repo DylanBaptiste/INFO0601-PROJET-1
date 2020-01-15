@@ -115,7 +115,7 @@ void createSim(char* decor){
     
     int nbF;
     int decor_d, sim_d;
-	unsigned char* buffer = malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2)*sizeof(unsigned char));
+	unsigned char buffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2)];
     char* path = malloc(sizeof(char) * strlen(decor) + 1);
 
     strcat(path, getFileBase(decor));
