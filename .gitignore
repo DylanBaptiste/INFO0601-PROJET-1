@@ -1,4 +1,4 @@
-.sim
-.bin
+*.sim
+*.bin
 
 .vscode/*
