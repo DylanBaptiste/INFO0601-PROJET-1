@@ -1,4 +1,6 @@
 *.sim
 *.bin
-
+*.o
+*.out
+*.exe
 .vscode/*

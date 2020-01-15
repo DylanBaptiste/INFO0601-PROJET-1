@@ -60,7 +60,6 @@ debug: all
 clean:
 	@echo "Suppresion des objets, des fichiers temporaires..."
 	@rm -f $(OBJETS) $(EXEC_O)
-	@rm -f *~ *#
 	@rm -f $(EXEC)
 	@rm -f dependances
 	@echo "Termine."

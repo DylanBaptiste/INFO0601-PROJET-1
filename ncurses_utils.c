@@ -45,8 +45,10 @@ void ncurses_couleurs() {
 	start_color();
 
 	/* Definition de la palette */
-	init_pair(1, COLOR_BLUE, COLOR_BLACK);
-	init_pair(2, COLOR_BLACK, COLOR_RED);
+	init_pair(0, COLOR_BLACK, COLOR_BLACK);
+	init_pair(1, COLOR_WHITE, COLOR_WHITE);
+	init_pair(2, COLOR_BLUE, COLOR_BLUE);
+
 }
 
 /**

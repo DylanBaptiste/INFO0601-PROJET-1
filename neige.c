@@ -21,7 +21,7 @@
 #define POSX3    LARGEUR2  
 #define POSY3    HAUTEUR1  
 
-#define SPAWN_RATIO	5 		/*1 chance sur SPAWN_RATIO qu'un flocon apparaisse dans chaque case de la prochaine generation*/
+#define SPAWN_RATIO	1 		/*1 chance sur SPAWN_RATIO qu'un flocon apparaisse dans chaque case de la prochaine generation*/
 #define START_MENU	2
 
 #define SIM_MODE 0
@@ -38,26 +38,33 @@ void placer_element(int y, int x, unsigned char c){
 	switch (c)
 	{
 		case 0:
-			mvwprintw(fenetre_jeu, y, x, " ");
+			attron(COLOR_PAIR(0));
+			mvaddch(y + HAUTEUR1 + 1, x+1, ' ');
+			attroff(COLOR_PAIR(0));
 			break;
 		case 1 :
-			mvwprintw(fenetre_jeu, y, x, "X");
+			attron(COLOR_PAIR(1));
+			mvaddch(y+HAUTEUR1 + 1, x+1, 'X');
+			attroff(COLOR_PAIR(1));
 			break;
 		case 2:
-			mvwprintw(fenetre_jeu, y, x, "+");
+			attron(COLOR_PAIR(2));
+			mvaddch(y+HAUTEUR1 + 1, x+1, '+');
+			attroff(COLOR_PAIR(2));
 			break;
 	
 		default:
-			mvwprintw(fenetre_jeu, y, x, "?");
+			mvaddch(y, x, '?');
 			break;
 	}
+
 	
 	
 	insertElement(fd, y, x, c);
 	
 
-	wprintw(fenetre_log, "\n(%d, %d) %d", y, x, c);
-	wrefresh(fenetre_log);
+	/*wprintw(fenetre_log, "\n(%d, %d) %d", y, x, c);
+	wrefresh(fenetre_log);*/
 	
 }
 
@@ -76,7 +83,7 @@ void spawn(){
 	nbGeneration++;
 
 	for(i = mHeight - 2; i >=  0; i--){
-		for(j = mWidth; j >= 0 ; j--){
+		for(j = mWidth -2 ; j > 0 ; j--){
 			
 			isStuck = FALSE;
 
@@ -180,7 +187,7 @@ void spawn(){
 	}
 	if(nbNew > 0){
 
-		wprintw(fenetre_log, "\nNouveaux flocons: %d", nbNew);
+		/*wprintw(fenetre_log, "\nNouveaux flocons: %d", nbNew);*/
 		mvwprintw(fenetre_etat, 0, 0, "Nb flocons: %d     ", nbFlocon);
 		
 		wrefresh(fenetre_log);
@@ -195,20 +202,22 @@ void spawn(){
 }
 
 void refresh_game(){
-	int i,j;
+	int i,j, nbFdelete = 0;
 	nbGeneration = 0;
 
-	wprintw(fenetre_log, "\nRafraichissement");
+	
 	
 	for(i = 0; i < HAUTEUR2; i++){
 		for(j = 0; j < LARGEUR2; j++){
 			if(matrice[i][j] == 1){
+				nbFdelete++;
 				placer_element(i, j, 0);
 				nbFlocon = 0;
 			} 
 		}
 	}
 
+	wprintw(fenetre_log, "\nRafraichissement (%d flocons supprimé(s))", nbFdelete);
 	
 	mvwprintw(fenetre_etat, 0, 0, "Nb flocons: %d     ", nbFlocon);
 	mvwprintw(fenetre_etat, 1, 0, "Generation: %d     ", nbGeneration);
@@ -293,6 +302,7 @@ int main(int argc, char** argv) {
 	
 	scrollok(fenetre_log, TRUE);
 
+	ncurses_couleurs();
 	
 	
 	k = 0;
@@ -328,15 +338,23 @@ int main(int argc, char** argv) {
 
 		while(quitter == FALSE) {
 		
-			i = getch();
 			
-			spawn();
+			
+			switch (getch())
+			{
+				case 'q':
+				case 'Q':
+					quitter = TRUE;
+					break;
+				
+				case 'r':
+				case 'R':
+					refresh_game();
+					break;
 
-			if(i == 'q' || i == 'Q')
-				quitter = TRUE;
-			
-			if(i == 'r' || i == 'R'){
-				refresh_game();
+				default:
+					spawn();
+					break;
 			}
 				
 		}
@@ -354,16 +372,18 @@ int main(int argc, char** argv) {
 		wrefresh(fenetre_etat);
 
 		ncurses_souris();
-		/*ncurses_couleurs();
-		wbkgd(fenetre_jeu, COLOR_PAIR(1));*/
+		/*ncurses_couleurs();*/
 		wrefresh(fenetre_jeu);
 		while(quitter == FALSE) {
 			i = getch();
 			if( (int)i == KEY_MOUSE){
 				if(souris_getpos(&sourisX, &sourisY, &bouton) == OK){
-					if( (sourisX > 0 && sourisX < (LARGEUR2 - 2) ) && ( (sourisY - POSY2) < HAUTEUR2 - 1 && (sourisY - POSY2)  > 0) ){
+					sourisX--;
+					sourisY--;
+					if( (sourisX >= 0 && sourisX < (LARGEUR2 - 2) ) && ( (sourisY - POSY2) < HAUTEUR2 - 2 && (sourisY - POSY2) >= 0) ){
 						wprintw(fenetre_log, "\n(%d, %d)", sourisX, sourisY - POSY2);
-						if( is_free(sourisY - POSY2, sourisX)){
+						
+						if( is_free(sourisY - POSY2, sourisX) ){
 							placer_element(sourisY - POSY2, sourisX, 2);
 						}else{
 							placer_element(sourisY - POSY2, sourisX , 0);
