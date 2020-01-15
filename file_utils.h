@@ -22,7 +22,7 @@ void createSim(char* decor);
  * @param buffer message à ecrire
  * @param fd file descriptor du fichier à remplire
  */
-void writeMap(unsigned char* buffer, int fd);
+void writeMap(unsigned char* buffer, int fd, int nbf);
 
 /**
  * @brief ouvre un fichier
@@ -39,7 +39,7 @@ int openFile(char* path);
  * @param buff le buffer qui doit recevoir le contenu du fichier
  * @return int 
  */
-void readMap(int fd, unsigned char** buff);
+void readMap(int fd, unsigned char* buff, int* nbF);
 
 /**
  * @brief get l'extention du fichier

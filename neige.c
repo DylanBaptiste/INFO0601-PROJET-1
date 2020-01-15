@@ -7,12 +7,12 @@
 #include "ncurses_utils.h"
 #include "file_utils.h"
 
-#define LARGEUR1 82
+#define LARGEUR1 80
 #define HAUTEUR1 5
 #define POSX1    0
 #define POSY1    0
 
-#define LARGEUR2 60 
+#define LARGEUR2 62 
 #define HAUTEUR2 20  
 #define POSX2    POSX1
 #define POSY2    HAUTEUR1 
@@ -81,7 +81,7 @@ void spawn(){
 	nbNew = 0;
 	nbGeneration++;
 
-	for(i = mHeight - 1; i >=  0; i--){
+	for(i = mHeight - 2; i >=  0; i--){
 		for(j = mWidth; j >= 0 ; j--){
 			
 			isStuck = FALSE;
@@ -160,8 +160,8 @@ void spawn(){
 					placer_element(i, j, 0);
 				}
 				
-				getch();
-				wrefresh(fenetre_jeu);
+				/*getch();
+				wrefresh(fenetre_jeu);*/
 			}
 			
 		}
@@ -173,6 +173,10 @@ void spawn(){
 	for(j = 0; j < mWidth; j++){
 		
 		if( is_free(0, j) && (rand() % SPAWN_RATIO + 1) == SPAWN_RATIO){
+			
+			/*getch();
+			wrefresh(fenetre_jeu);*/
+
 			placer_element(0, j, 1);
 			mvwprintw(fenetre_etat,0,0, "Nb flocons: %d     ", nbFlocon++);
 			wrefresh(fenetre_etat);
@@ -225,8 +229,8 @@ int main(int argc, char** argv) {
 	
 	int i, j, k, startMenu; /*sourisX, sourisY;*/
 	int quitter = FALSE;
-	unsigned char* mapBuffer = calloc((LARGEUR2 - 2)*(HAUTEUR2 - 2), sizeof(unsigned char));
-	
+	unsigned char mapBuffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1];  /*= malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1 * sizeof(unsigned char));*/
+	mapBuffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2)-1] = 9;
 	nbFlocon = 0;
 
 	fenetre_log  = NULL;
@@ -275,17 +279,31 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
-
-	mode == SIM_MODE ? readMap(fd_sim, &mapBuffer) : readMap(fd_dec, &mapBuffer);
-
+	
+	printf("\n\n");
 
 	k=0;
-	/*for(i = 0; i < mHeight; i++){
+	for(i = 0; i < mHeight; i++){
 		for(j = 0; j < mWidth; j++, k++){
-			printf("%c,", mapBuffer[k]);
-				mapBuffer[k] = 0;
+			
+			printf("%d ", mapBuffer[k]);
+			mapBuffer[k] = 0;
+			if((( (k % (LARGEUR2-2)) - (LARGEUR2-3) ))==0){ printf("\n");}
 		}
-	}*/
+	}
+	printf("\n\n");
+	
+	mode == SIM_MODE ? readMap(fd_sim, mapBuffer, &nbFlocon) : readMap(fd_dec, mapBuffer, &nbFlocon);
+	
+	k=0;
+	for(i = 0; i < mHeight; i++){
+		for(j = 0; j < mWidth; j++, k++){
+			printf("%d ", mapBuffer[k]);
+				if((( (k % (LARGEUR2-2)) - (LARGEUR2-3) ))==0){ printf("\n");}
+		}
+	}
+	printf("\n\n");
+
 
 	ncurses_initialiser();
 
@@ -302,12 +320,15 @@ int main(int argc, char** argv) {
 		for(j = 0; j < mWidth; j++, k++){
 			/* Chargement de la simulation */
 			placer_element(i, j, mapBuffer[k]);
-			/*printf("%c,", mapBuffer[k]);*/
-			/*printf("%c,", matrice[i][j]);*/
+			
+			/*printf("%d", matrice[i][j]);*/
 		}
 	}
 	
+	
+
 	if(mode == SIM_MODE){
+		
 		startMenu = START_MENU;
 		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
 		mvwprintw(fenetre_etat, ++startMenu, 0, "Quitter:    q");
@@ -318,6 +339,11 @@ int main(int argc, char** argv) {
 		mvwprintw(fenetre_etat, ++startMenu, 0, "Obstacle:   -");
 		mvwprintw(fenetre_etat, ++startMenu, 0, "Ratio:      1/%d", SPAWN_RATIO);
 		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
+
+
+		mvwprintw(fenetre_etat, 0, 0, "Nb flocons: %d     ", nbFlocon);
+
+		wrefresh(fenetre_jeu);
 		wrefresh(fenetre_etat);
 
 		while(quitter == FALSE) {

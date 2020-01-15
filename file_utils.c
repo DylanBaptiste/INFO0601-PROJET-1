@@ -9,6 +9,9 @@
 
 #include "file_utils.h"
 
+#define LARGEUR2 60 
+#define HAUTEUR2 20 
+
 #define MAXFNAME 2048
 
 /**
@@ -50,16 +53,17 @@ int openFile(char* path)
  * @param buffer message à ecrire
  * @param fd file descriptor du fichier à remplire
  */
-void writeMap(unsigned char* buffer, int fd)
+void writeMap(unsigned char* buffer, int fd, int nbF)
 {
     int i;
     
-    for(i = 0; i < 1044; i++){
+    for(i = 0; i < (LARGEUR2 - 2)*(HAUTEUR2 - 2); i++){
         if(write(fd, buffer+i, sizeof(unsigned char)) == -1){
             fprintf(stderr, "erreur lors de la copie de la map\n");
             exit(EXIT_FAILURE);
         }    
     }
+    /*ecrire le nb de flocon etc...*/
 }
     
 /**
@@ -71,7 +75,7 @@ void constructeurFile(int fd)
     unsigned char caseVide = 0;
 
 
-    for(i = 0; i < 1044; i++){
+    for(i = 0; i < (LARGEUR2 - 2)*(HAUTEUR2 - 2); i++){
         if(write(fd, &caseVide, sizeof(unsigned char)) == -1){
             fprintf(stderr, "erreur lors de la copie de la map\n");
             exit(EXIT_FAILURE);
@@ -86,16 +90,17 @@ void constructeurFile(int fd)
  * @param buff le buffer qui doit recevoir le contenu du fichier
  * @return int 
  */
-void readMap(int fd, unsigned char** buff/* titre et pos(x,y) */)
+void readMap(int fd, unsigned char* buff, int* nbF/* titre et pos(x,y) */)
 {
-    /*int taille = 0;
-    char lecture[1044];*/
+    int taille = 0;
+    unsigned char lecture;
     lseek(fd, 0, SEEK_SET);
     if(fd > 0){
         /*lire uniquement la map 0 1 2 dans le buff*/
-        while( read(fd, *buff, sizeof(unsigned char)) != 0)
+        while( read(fd, &lecture, sizeof(unsigned char)) != 0)
         {
-           /* buff[++taille] = *lecture;*/
+           buff[taille++] = lecture;
+           *nbF += lecture == 1;
         }
         /*ensuite lire les 2 autre info, (+taille pour le tire au debut?)*/
     }
@@ -108,8 +113,9 @@ void readMap(int fd, unsigned char** buff/* titre et pos(x,y) */)
  */
 void createSim(char* decor){
     
+    int nbF;
     int decor_d, sim_d;
-	unsigned char* buffer = malloc(1044*sizeof(unsigned char));
+	unsigned char* buffer = malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2)*sizeof(unsigned char));
     char* path = malloc(sizeof(char) * strlen(decor) + 1);
 
     strcat(path, getFileBase(decor));
@@ -120,10 +126,10 @@ void createSim(char* decor){
     sim_d = creat(path, S_IRWXU);
 
     /*On lit le decor dans le buffer*/
-    readMap(decor_d, &buffer);
+    readMap(decor_d, buffer, &nbF);
     
     /*On copie le buffer dans la simulation*/
-    writeMap(buffer, sim_d);
+    writeMap(buffer, sim_d, nbF);
 
     printf("%s\n", buffer);
 
@@ -171,7 +177,7 @@ char* getFileBase (const char* path) {
  */
 void insertElement(int fd, int x, int y, unsigned char element){
     /*20 == largeur de la matrice*/
-    lseek(fd, 60*x+y, SEEK_SET);
+    lseek(fd, (LARGEUR2 - 2)*x+y, SEEK_SET);
     if(write(fd, &element, sizeof(unsigned char)) == -1){
         fprintf(stderr, "erreur lors de l'update de la simulation");
         exit(EXIT_FAILURE);
