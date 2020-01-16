@@ -36,7 +36,7 @@ CCLIBS = -lncurses
 all: msg $(OBJETS) $(EXEC_O)
 	@echo "Creation des executables..."
 	@for i in $(EXEC); do \
-	$(CC) -o $$i $$i.o $(OBJETS) $(CCLIBS); \
+	$(CC) -o $$i.out $$i.o $(OBJETS) $(CCLIBS); \
 	done
 	@echo "Termine."
 
@@ -88,5 +88,3 @@ archive: clean
 
 # DEPENDANCES
 ncurses.o: ncurses.c ncurses.h
-exemple1.o: exemple1.c ncurses.h
-exemple2.o: exemple2.c ncurses.h
