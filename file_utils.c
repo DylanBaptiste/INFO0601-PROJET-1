@@ -129,7 +129,7 @@ void constructeurFile(int fd)
 
     writeFallPosition(fd, 255, 255);
     writeNbF(fd, 0);
-    writeTitle(fd, '\0');
+    /*writeTitle(fd, '\0');*/
 } 
 
 /**
@@ -277,5 +277,7 @@ void writeTitle(int fd, unsigned char c){
     if(write(fd, &c, sizeof(unsigned char)) != sizeof(unsigned char)){
         exit(EXIT_FAILURE);
     };
+
+    
     
 }

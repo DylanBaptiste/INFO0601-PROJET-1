@@ -90,13 +90,17 @@ void spawn(){
 	nbNew = 0;
 	nbGeneration++;
 
-	for(i = mHeight - 2; i >=  0; i--){
-		for(j = mWidth -2 ; j > 0 ; j--){
+	for( i = restartX == 255 ? mHeight - 2 : restartX; i >=  0; i--){
+		for(j = restartY == 255 ? mWidth  - 2 : restartY; j > 0 ; j--){
 			
 			isStuck = FALSE;
 
 			if(matrice[i][j] == 1){
+				
 				writeFallPosition(fd, i, j);
+				restartY = i;
+				restartX = j;
+
 				if(rand() % 2){
 					if(j > 1){
 
@@ -173,9 +177,16 @@ void spawn(){
 				/**chaque f**/
 				getch();
 				wrefresh(fenetre_jeu);
+				writeFallPosition(fd, 255, 255);
+				restartY = 255;
+				restartX = 255;
 			}
 			else{
+				/*
 				writeFallPosition(fd, 255, 255);
+				writeFallPosition(fd, i, j);
+				restartY = 255;
+				restartX = 255;*/
 
 			}
 		}
@@ -183,7 +194,10 @@ void spawn(){
 		
 	}
 
-	/*srand(time(0)); Trouver une meilleur seed ?*/
+	writeFallPosition(fd, 255, 255);
+	restartY = 255;
+	restartX = 255;
+
 	for(j = 0; j < mWidth; j++){
 		
 		if( is_free(0, j) && (rand() % SPAWN_RATIO + 1) == SPAWN_RATIO){
@@ -194,7 +208,9 @@ void spawn(){
 			placer_element(0, j, 1);
 			mvwprintw(fenetre_etat,0,0, "Nb flocons: %d     ", nbFlocon++);
 			wrefresh(fenetre_etat);
+			
 			writeNbF(fd, nbFlocon);
+			
 			nbNew++;
 		}
 		
@@ -218,18 +234,20 @@ void spawn(){
 void refresh_game(){
 	int i,j, nbFdelete = 0;
 	nbGeneration = 0;
-
-	
 	
 	for(i = 0; i < HAUTEUR2; i++){
 		for(j = 0; j < LARGEUR2; j++){
 			if(matrice[i][j] == 1){
 				nbFdelete++;
 				placer_element(i, j, 0);
-				nbFlocon = 0;
+				
+				
 			} 
 		}
 	}
+
+	nbFlocon = 0;
+	writeNbF(fd, nbFlocon);
 
 	wprintw(fenetre_log, "\nRafraichissement (%d flocons supprimé(s))", nbFdelete);
 	
