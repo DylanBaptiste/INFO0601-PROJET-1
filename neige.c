@@ -96,7 +96,7 @@ void spawn(){
 			isStuck = FALSE;
 
 			if(matrice[i][j] == 1){
-				
+				writeFallPosition(fd, i, j);
 				if(rand() % 2){
 					if(j > 1){
 
@@ -174,7 +174,10 @@ void spawn(){
 				getch();
 				wrefresh(fenetre_jeu);
 			}
-			
+			else{
+				writeFallPosition(fd, 255, 255);
+
+			}
 		}
 		
 		
@@ -191,6 +194,7 @@ void spawn(){
 			placer_element(0, j, 1);
 			mvwprintw(fenetre_etat,0,0, "Nb flocons: %d     ", nbFlocon++);
 			wrefresh(fenetre_etat);
+			writeNbF(fd, nbFlocon);
 			nbNew++;
 		}
 		
@@ -244,6 +248,9 @@ int main(int argc, char** argv) {
 	int i, j, k, startMenu, sourisX, sourisY, bouton;
 	int quitter = FALSE;
 	unsigned char* mapBuffer/*[(LARGEUR2 - 2)*(HAUTEUR2 - 2) +1];*/ = malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1 * sizeof(unsigned char));
+	WINDOW *box_jeu, *box_etat, *box_log;
+	
+	
 	title = malloc(255 * sizeof(unsigned char));
 	nbFlocon = -1;
 
@@ -271,7 +278,6 @@ int main(int argc, char** argv) {
 				fd = openFile(argv[2]);
 				lseek(fd, 0, SEEK_SET);
 				readMap(fd, mapBuffer, &restartX, &restartY, &nbFlocon, title);
-				printf("\nTitre: %s\nX: %d\nY:%d\nNbF:%d\n", title, restartX, restartY, nbFlocon);
 				mode = DEC_MODE;
 			}else{
 				fprintf(stderr, "le decor doit etre un fichier .bin\n");
@@ -292,6 +298,7 @@ int main(int argc, char** argv) {
 		}
 	}
 	 
+	printf("\nTitre: %s\nX: %d\nY:%d\nNbF:%d\n", title, restartX, restartY, nbFlocon);
 
 	
 	
@@ -308,25 +315,25 @@ int main(int argc, char** argv) {
 
 	ncurses_initialiser();
 
-	create_box(&fenetre_log,  HAUTEUR1, LARGEUR1, POSY1, POSX1);
-	create_box(&fenetre_jeu,  HAUTEUR2, LARGEUR2, POSY2, POSX2);
-	create_box(&fenetre_etat, HAUTEUR3, LARGEUR3, POSY3, POSX3);
+	box_log  = create_box(&fenetre_log,  HAUTEUR1, LARGEUR1, POSY1, POSX1);
+	box_jeu  = create_box(&fenetre_jeu,  HAUTEUR2, LARGEUR2, POSY2, POSX2);
+	box_etat = create_box(&fenetre_etat, HAUTEUR3, LARGEUR3, POSY3, POSX3);
 	
-	scrollok(fenetre_log, TRUE);
+	mvwprintw(box_jeu,  0, 3, "%s", (char*)title);
+	mvwprintw(box_log,  0, 3, "Logs");
+	mvwprintw(box_etat, 0, 3, "Etat");
+	wrefresh(box_log );
+	wrefresh(box_jeu );
+	wrefresh(box_etat);
 
-	/*ncurses_couleurs();*/
-	
+	scrollok(fenetre_log, TRUE);	
 	
 	k = 0;
 	for(i = 0; i < mHeight; i++){
 		for(j = 0; j < mWidth; j++, k++){
-			/* Chargement de la simulation */
 			placer_element(i, j, mapBuffer[k]);
-			
-			/*printf("%d", matrice[i][j]);*/
 		}
 	}
-	
 	
 
 	if(mode == SIM_MODE){
@@ -342,7 +349,6 @@ int main(int argc, char** argv) {
 		mvwprintw(fenetre_etat, ++startMenu, 0, "Ratio:      1/%d", SPAWN_RATIO);
 		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
 
-
 		mvwprintw(fenetre_etat, 0, 0, "Nb flocons: %d     ", nbFlocon);
 
 		wrefresh(fenetre_jeu);
@@ -350,8 +356,6 @@ int main(int argc, char** argv) {
 
 		while(quitter == FALSE) {
 		
-			
-			
 			switch (getch())
 			{
 				case 'q':
@@ -384,18 +388,9 @@ int main(int argc, char** argv) {
 		wrefresh(fenetre_etat);
 
 		ncurses_souris();
-		/*ncurses_couleurs();*/
+
 		wrefresh(fenetre_jeu);
-
-		
-
-		/*writeFallPosition(fd, 255, 254);
-		writeNbF(fd, 10);*/
-		/*writeTitle(fd, 'a');*/
-
-		wprintw(fenetre_log, "Titre: %s", title);
-		wrefresh(fenetre_log);
-
+		wrefresh(box_jeu);
 
 		while(quitter == FALSE) {
 			i = getch();
@@ -428,7 +423,7 @@ int main(int argc, char** argv) {
 						quitter = TRUE;
 						break;
 					
-					case '\n' : case '\t': case '\r': case '\0': break;
+					case '\n' : case '\t': case '\r': case '\0': case 7: break;
 					case ' ':
 						wprintw(fenetre_log, "_");
 						wrefresh(fenetre_log);

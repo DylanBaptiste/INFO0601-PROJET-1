@@ -22,8 +22,7 @@ int  createSim(char* decor, int sim_d, unsigned char* buff, unsigned char* x, un
  * @param buffer message à ecrire
  * @param fd file descriptor du fichier à remplire
  */
-void writeMap(unsigned char* buffer, int fd, unsigned char* nbf);
-
+void writeMap(unsigned char* buffer, int fd, unsigned char* x, unsigned char* y, unsigned char* nbf, unsigned char* tritre );
 /**
  * @brief ouvre un fichier
  * 

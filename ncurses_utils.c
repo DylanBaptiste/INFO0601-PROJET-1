@@ -100,11 +100,12 @@ int souris_getpos(int *x, int *y, int *bouton) {
  * @param y int La position Y de la fenêtre
  * @param x int La position X de la fenêtre
  */
-void create_box(WINDOW** win, int h, int l, int y, int x){
+WINDOW* create_box(WINDOW** win, int h, int l, int y, int x){
 	
 	WINDOW *topWin = newwin(h, l, y, x);
 	*win = newwin(h - 2, l - 2, y + 1, x + 1);
 
 	box(topWin, 0, 0);
 	wrefresh(topWin);
+	return topWin;
 }

@@ -9,6 +9,6 @@ void ncurses_couleurs();
 void ncurses_souris();
 int souris_getpos(int *x, int *y, int *bouton);
 
-void create_box(WINDOW** win, int h, int l, int y, int x);
+WINDOW* create_box(WINDOW** win, int h, int l, int y, int x);
 
 #endif

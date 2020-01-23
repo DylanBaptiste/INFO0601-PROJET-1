@@ -90,7 +90,7 @@ int openFileSim(char* simFile, unsigned char *buff,  unsigned char *x,  unsigned
  * @param buffer message à ecrire
  * @param fd file descriptor du fichier à remplire
  */
-void writeMap(unsigned char* buffer, int fd, unsigned char* nbf)
+void writeMap(unsigned char* buffer, int fd, unsigned char* x, unsigned char* y, unsigned char* nbf, unsigned char* tritre )
 {
     int i;
     
@@ -100,7 +100,15 @@ void writeMap(unsigned char* buffer, int fd, unsigned char* nbf)
             exit(EXIT_FAILURE);
         }    
     }
-    /*ecrire le nb de flocon etc...*/
+
+    writeFallPosition(fd, *x, *y);
+    writeNbF(fd, *nbf);
+
+    for(i = 0; i < strlen((char*)tritre); ++i){
+        writeTitle(fd, tritre[i]);
+    }
+    
+    
 }
     
 /**
@@ -120,7 +128,7 @@ void constructeurFile(int fd)
     }
 
     writeFallPosition(fd, 255, 255);
-    writeNbF(fd, 1);
+    writeNbF(fd, 0);
     writeTitle(fd, '\0');
 } 
 
@@ -143,11 +151,9 @@ void readMap(int fd, unsigned char* buff, unsigned char* x, unsigned char* y, un
     }
 
     lseek(fd, -1, SEEK_CUR);
-    
+
     if(read(fd, x, sizeof(unsigned char)) != sizeof(unsigned char)){
         printf("err x: %d", *x);
-    }else{
-        printf("\ttest : %d\n", *x);
     }
     if(read(fd, y, sizeof(unsigned char) ) != sizeof(unsigned char)){
         printf("err y: %d", *y);
@@ -186,7 +192,7 @@ int createSim(char* simFile, int sim_d, unsigned char* buff, unsigned char* x, u
     readMap(decor_d, buff, x, y, nbF, titre);
     
     /*On copie le buffer dans la simulation*/
-    writeMap(buff, sim_d, nbF);
+    writeMap(buff, sim_d, x, y, nbF, titre);
 
     return sim_d;
 
