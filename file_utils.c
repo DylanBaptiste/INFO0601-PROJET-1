@@ -12,7 +12,7 @@
 #define LARGEUR2 60 
 #define HAUTEUR2 20 
 
-#define MAXFNAME 2048
+#define MAXFNAME 255
 
 /**
  * @brief ouvre un fichier
@@ -119,8 +119,8 @@ void constructeurFile(int fd)
         }    
     }
 
-    writeFallPosition(fd, 0,0);
-    writeNbF(fd, 0);
+    writeFallPosition(fd, 255, 255);
+    writeNbF(fd, 1);
     writeTitle(fd, '\0');
 } 
 
@@ -136,22 +136,30 @@ void readMap(int fd, unsigned char* buff, unsigned char* x, unsigned char* y, un
     int taille = 0;
     unsigned char lecture;
     lseek(fd, 0, SEEK_SET);
-    
-    /*lire uniquement la map 0 1 2 dans le buff*/
-    while( read(fd, &lecture, sizeof(unsigned char)) == sizeof(unsigned char))
+
+    while( read(fd, &lecture, sizeof(unsigned char)) == sizeof(unsigned char) && taille <  (LARGEUR2 - 2)*(HAUTEUR2 - 2) )
     {
         buff[taille++] = lecture;
-        *nbF += lecture == 1;
     }
-    /*ensuite lire les 2 autre info, (+taille pour le tire au debut?)*/
-    if(read(fd, x, sizeof(unsigned char) != sizeof(unsigned char))){
+
+    lseek(fd, -1, SEEK_CUR);
+    
+    if(read(fd, x, sizeof(unsigned char)) != sizeof(unsigned char)){
         printf("err x: %d", *x);
+    }else{
+        printf("\ttest : %d\n", *x);
     }
-    if(read(fd, y, sizeof(unsigned char) != sizeof(unsigned char))){
+    if(read(fd, y, sizeof(unsigned char) ) != sizeof(unsigned char)){
         printf("err y: %d", *y);
     }
-    if(read(fd, nbF, sizeof(unsigned char) != sizeof(unsigned char))){
+    if(read(fd, nbF, sizeof(unsigned char)) != sizeof(unsigned char)){
         printf("err nbF: %d", *nbF);
+    }
+
+    taille = 0;
+    while( read(fd, &lecture, sizeof(unsigned char)) == sizeof(unsigned char) && taille < MAXFNAME)
+    {
+        titre[taille++] = lecture;
     }
 }
 
@@ -237,13 +245,13 @@ void insertElement(int fd, int x, int y, unsigned char element){
 
 
 void writeFallPosition(int fd, unsigned char x, unsigned char y){
-    
+
     lseek(fd, (LARGEUR2 - 2)*(HAUTEUR2-2), SEEK_SET);
     if( write(fd, &x, sizeof(unsigned char)) != sizeof(unsigned char)){
         exit(EXIT_FAILURE);
     };
 
-    lseek(fd, sizeof(unsigned char), SEEK_CUR);
+    /*lseek(fd, 1, SEEK_CUR);*/
     if(write(fd, &y, sizeof(unsigned char)) != sizeof(unsigned char)){
         exit(EXIT_FAILURE);
     };
@@ -258,8 +266,10 @@ void writeNbF(int fd, unsigned char nb){
 
 }
 void writeTitle(int fd, unsigned char c){
+    
     lseek(fd, 0, SEEK_END);
     if(write(fd, &c, sizeof(unsigned char)) != sizeof(unsigned char)){
         exit(EXIT_FAILURE);
     };
+    
 }

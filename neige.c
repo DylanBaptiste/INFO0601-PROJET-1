@@ -387,11 +387,15 @@ int main(int argc, char** argv) {
 		/*ncurses_couleurs();*/
 		wrefresh(fenetre_jeu);
 
+		
+
+		/*writeFallPosition(fd, 255, 254);
+		writeNbF(fd, 10);*/
+		/*writeTitle(fd, 'a');*/
+
 		wprintw(fenetre_log, "Titre: %s", title);
 		wrefresh(fenetre_log);
 
-		writeFallPosition(fd, 255, 255);
-		writeNbF(fd, 0);
 
 		while(quitter == FALSE) {
 			i = getch();
