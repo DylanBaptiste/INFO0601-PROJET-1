@@ -14,7 +14,7 @@
  * 
  * @param decor 
  */
-void createSim(char* decor);
+int  createSim(char* decor, int sim_d, unsigned char* buff, unsigned char* x, unsigned char* y, unsigned char* nbF, unsigned char* titre);
 
 /**
  * @brief ecrit un buffer dans un fichier
@@ -22,7 +22,7 @@ void createSim(char* decor);
  * @param buffer message à ecrire
  * @param fd file descriptor du fichier à remplire
  */
-void writeMap(unsigned char* buffer, int fd, int nbf);
+void writeMap(unsigned char* buffer, int fd, unsigned char* nbf);
 
 /**
  * @brief ouvre un fichier
@@ -32,6 +32,8 @@ void writeMap(unsigned char* buffer, int fd, int nbf);
  */
 int openFile(char* path);
 
+int openFileSim(char* simFile, unsigned char *buff,  unsigned char *x,  unsigned char *y,  unsigned char* nbf, unsigned char* titre);
+
 /**
  * @brief copie un fichier dans un buffer
  * 
@@ -39,7 +41,7 @@ int openFile(char* path);
  * @param buff le buffer qui doit recevoir le contenu du fichier
  * @return int 
  */
-void readMap(int fd, unsigned char* buff, int* nbF);
+void readMap(int fd, unsigned char* buff, unsigned char* x, unsigned char* y, unsigned char* nbF, unsigned char* titre);
 
 /**
  * @brief get l'extention du fichier
@@ -68,4 +70,9 @@ void insertElement(int fd, int x, int y, unsigned char element);
 
 
 void constructeurFile(int fd);
+
+
+void writeFallPosition(int fd, unsigned char x, unsigned char y);
+void writeNbF(int fd, unsigned char nb);
+void writeTitle(int fd, unsigned char c);
 #endif

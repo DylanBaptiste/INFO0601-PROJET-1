@@ -21,16 +21,17 @@
 #define POSX3    LARGEUR2  
 #define POSY3    HAUTEUR1  
 
-#define SPAWN_RATIO	1 		/*1 chance sur SPAWN_RATIO qu'un flocon apparaisse dans chaque case de la prochaine generation*/
+#define SPAWN_RATIO	5  		/*1 chance sur SPAWN_RATIO qu'un flocon apparaisse dans chaque case de la prochaine generation*/
 #define START_MENU	2
 
 #define SIM_MODE 0
 #define DEC_MODE 1
 
-int nbFlocon, mWidth, mHeight, nbGeneration, fd, mode;
+int mWidth, mHeight, nbGeneration, fd, mode;
+unsigned char restartX, restartY, nbFlocon;
 unsigned char** matrice;
 WINDOW *fenetre_log, *fenetre_jeu, *fenetre_etat;
-
+unsigned char* title;
 void placer_element(int y, int x, unsigned char c){
 	
 	matrice[y][x] = c;
@@ -38,23 +39,30 @@ void placer_element(int y, int x, unsigned char c){
 	switch (c)
 	{
 		case 0:
-			attron(COLOR_PAIR(0));
+			mvwprintw(fenetre_jeu, y, x, " ");
+			/*attron(COLOR_PAIR(0));
 			mvaddch(y + HAUTEUR1 + 1, x+1, ' ');
-			attroff(COLOR_PAIR(0));
+			attroff(COLOR_PAIR(0));*/
 			break;
 		case 1 :
+		mvwprintw(fenetre_jeu, y, x, "X");
+		/*
 			attron(COLOR_PAIR(1));
 			mvaddch(y+HAUTEUR1 + 1, x+1, 'X');
 			attroff(COLOR_PAIR(1));
+			*/
 			break;
 		case 2:
+		mvwprintw(fenetre_jeu, y, x, "+");
+		/*
 			attron(COLOR_PAIR(2));
 			mvaddch(y+HAUTEUR1 + 1, x+1, '+');
-			attroff(COLOR_PAIR(2));
+			attroff(COLOR_PAIR(2));*/
 			break;
 	
 		default:
-			mvaddch(y, x, '?');
+		mvwprintw(fenetre_jeu, y, x, "?");
+			/*mvaddch(y, x, '?');*/
 			break;
 	}
 
@@ -90,7 +98,7 @@ void spawn(){
 			if(matrice[i][j] == 1){
 				
 				if(rand() % 2){
-					if(j > 0){
+					if(j > 1){
 
 						if(is_free(i+1, j-1)){
 							placer_element(i+1, j-1, 1);
@@ -101,6 +109,7 @@ void spawn(){
 								if(is_free(i+1, j)){
 									placer_element(i+1, j, 1);
 								}else{
+									
 									/*le flocon est blocké*/
 									isStuck = TRUE;
 								}
@@ -161,8 +170,9 @@ void spawn(){
 					placer_element(i, j, 0);
 				}
 				
-				/*getch();
-				wrefresh(fenetre_jeu);*/
+				/**chaque f**/
+				getch();
+				wrefresh(fenetre_jeu);
 			}
 			
 		}
@@ -233,8 +243,9 @@ int main(int argc, char** argv) {
 	
 	int i, j, k, startMenu, sourisX, sourisY, bouton;
 	int quitter = FALSE;
-	unsigned char mapBuffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2)];  /*= malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1 * sizeof(unsigned char));*/
-	nbFlocon = 0;
+	unsigned char* mapBuffer/*[(LARGEUR2 - 2)*(HAUTEUR2 - 2) +1];*/ = malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1 * sizeof(unsigned char));
+	title = malloc(255 * sizeof(unsigned char));
+	nbFlocon = -1;
 
 	fenetre_log  = NULL;
 	fenetre_jeu  = NULL;
@@ -242,12 +253,11 @@ int main(int argc, char** argv) {
 
 	mWidth  = LARGEUR2 - 2;
 	mHeight = HAUTEUR2 - 2;
-
 	matrice = (unsigned char**)malloc(mHeight * sizeof( unsigned char*));
 	for(i = 0; i < mWidth; i++){
 		matrice[i] = (unsigned char*)malloc(mWidth * sizeof(unsigned char));
 	}
-
+	
 	if(argc != 3){
 		fprintf(stderr, "mauvaise utilisation: ./neige [<type>] [<path>]\n");
 		exit(EXIT_FAILURE);
@@ -259,10 +269,9 @@ int main(int argc, char** argv) {
 		if( strcmp(argv[1], "-N") == 0 ){
 			if(strcmp(getFileExt(argv[2]), "bin") == 0){
 				fd = openFile(argv[2]);
-				close(fd);
-				createSim(argv[2]);
-				/*fprintf(stdout, "le fichier de simulation est créé: %s.sim\n", getFileBase(argv[2]));
-				exit(EXIT_SUCCESS);*/
+				lseek(fd, 0, SEEK_SET);
+				readMap(fd, mapBuffer, &restartX, &restartY, &nbFlocon, title);
+				printf("\nTitre: %s\nX: %d\nY:%d\nNbF:%d\n", title, restartX, restartY, nbFlocon);
 				mode = DEC_MODE;
 			}else{
 				fprintf(stderr, "le decor doit etre un fichier .bin\n");
@@ -273,7 +282,7 @@ int main(int argc, char** argv) {
 		if( strcmp(argv[1], "-S") == 0 ){
 			
 			if(strcmp(getFileExt(argv[2]), "sim") == 0){
-				fd = openFile(argv[2]);
+				fd = openFileSim(argv[2], mapBuffer, &restartX, &restartY, &nbFlocon, title);
 				mode = SIM_MODE;
 			}
 			else{
@@ -282,16 +291,19 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
+	 
+
 	
-	readMap(fd, mapBuffer, &nbFlocon);
 	
-	for(i = 0, k = 0; i < mHeight; i++){
+	/*k = 0;
+	for(i = 0; i < mHeight; i++){
 		for(j = 0; j < mWidth; j++, k++){
 			printf("%d", mapBuffer[k]);
 			if((( (k % (LARGEUR2-2)) - (LARGEUR2-3) ))==0){ printf("\n");}
 		}
 	}
-	printf("\n\n");
+	printf("\n\n");*/
+	
 
 
 	ncurses_initialiser();
@@ -302,7 +314,7 @@ int main(int argc, char** argv) {
 	
 	scrollok(fenetre_log, TRUE);
 
-	ncurses_couleurs();
+	/*ncurses_couleurs();*/
 	
 	
 	k = 0;
@@ -367,13 +379,20 @@ int main(int argc, char** argv) {
 		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
 		mvwprintw(fenetre_etat, ++startMenu, 0, "Quitter:    q");
 		++startMenu;
-		mvwprintw(fenetre_etat, ++startMenu, 0, "Obstacle:   -");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Obstacle:   +");
 		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
 		wrefresh(fenetre_etat);
 
 		ncurses_souris();
 		/*ncurses_couleurs();*/
 		wrefresh(fenetre_jeu);
+
+		wprintw(fenetre_log, "Titre: %s", title);
+		wrefresh(fenetre_log);
+
+		writeFallPosition(fd, 255, 255);
+		writeNbF(fd, 0);
+
 		while(quitter == FALSE) {
 			i = getch();
 			if( (int)i == KEY_MOUSE){
@@ -381,7 +400,7 @@ int main(int argc, char** argv) {
 					sourisX--;
 					sourisY--;
 					if( (sourisX >= 0 && sourisX < (LARGEUR2 - 2) ) && ( (sourisY - POSY2) < HAUTEUR2 - 2 && (sourisY - POSY2) >= 0) ){
-						wprintw(fenetre_log, "\n(%d, %d)", sourisX, sourisY - POSY2);
+						/*wprintw(fenetre_log, "\n(%d, %d)", sourisX, sourisY - POSY2);*/
 						
 						if( is_free(sourisY - POSY2, sourisX) ){
 							placer_element(sourisY - POSY2, sourisX, 2);
@@ -397,20 +416,31 @@ int main(int argc, char** argv) {
 				}
 				
 			}
-			/*wprintw(fenetre_log, "1");
-			wrefresh(fenetre_log);
-			if( (i == KEY_MOUSE) && (souris_getpos(&sourisX, &sourisY, NULL) == OK)){
-				wprintw(fenetre_log, "test");
-				wrefresh(fenetre_log);
-				if((sourisX >= POSX2) && (sourisX < POSX2 + LARGEUR2) && (sourisY >= POSY2) && (sourisY < POSY2 + HAUTEUR2))
-					placer_element(sourisY, sourisX, '-');
-			}*/
+			else{
+				switch (i)
+				{
+					case 'q':
+					case 'Q':
+						quitter = TRUE;
+						break;
+					
+					case '\n' : case '\t': case '\r': case '\0': break;
+					case ' ':
+						wprintw(fenetre_log, "_");
+						wrefresh(fenetre_log);
+						writeTitle(fd, '_');
+						break;
+					default:
+						wprintw(fenetre_log, "%c", i);
+						wrefresh(fenetre_log);
+						writeTitle(fd, i);
+						break;
+				}
+			}
 
-			if(i == 'q' || i == 'Q')
-				quitter = TRUE;
+			
 			
 		}
-
 		
 		close(fd);
 	}

@@ -47,13 +47,50 @@ int openFile(char* path)
     return fd;
 }
 
+int openFileSim(char* simFile, unsigned char *buff,  unsigned char *x,  unsigned char *y,  unsigned char* nbf, unsigned char* titre)
+{
+    /*int nbF;*/
+    int fd;
+    /*unsigned char buffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2)];*/
+    char* path = malloc(sizeof(char) * strlen(simFile) + 1);
+
+    strcat(path, getFileBase(simFile));
+    strcat(path, ".bin");
+
+    fd = open(simFile, O_RDWR);
+    /*printf("fd : %d", fd);*/
+    
+    if (fd >= 0){
+        /*On lit le decor dans le buffer*/
+        readMap(fd, buff, x, y, nbf, titre);
+        
+        /*On copie le buffer dans la simulation*/
+        /*writeMap(buffer, fd, nbF);*/
+    }
+    else if (errno == ENOENT){ /*the named file does not exist*/
+        fd = creat(simFile, S_IRWXU); /* Creation avec droit à tlm*/
+        /*printf("fd : %d",fd);*/
+        
+        if (fd >= 0 ){
+            
+            fd = createSim(simFile, fd, buff, x, y, nbf, titre); 
+        }
+        else{
+            /*perror("Erreur lors de l'ouverture du fichier\n");*/
+            fprintf(stderr, "erreur lors de l'ouverture du fichier %s\n", simFile);
+            exit(EXIT_FAILURE);
+        }
+    }
+    return fd;
+}
+
 /**
  * @brief ecrit un buffer dans un fichier
  * 
  * @param buffer message à ecrire
  * @param fd file descriptor du fichier à remplire
  */
-void writeMap(unsigned char* buffer, int fd, int nbF)
+void writeMap(unsigned char* buffer, int fd, unsigned char* nbf)
 {
     int i;
     
@@ -77,10 +114,14 @@ void constructeurFile(int fd)
 
     for(i = 0; i < (LARGEUR2 - 2)*(HAUTEUR2 - 2); i++){
         if(write(fd, &caseVide, sizeof(unsigned char)) == -1){
-            fprintf(stderr, "erreur lors de la copie de la map\n");
+            fprintf(stderr, "erreur constructuoin\n");
             exit(EXIT_FAILURE);
         }    
     }
+
+    writeFallPosition(fd, 0,0);
+    writeNbF(fd, 0);
+    writeTitle(fd, '\0');
 } 
 
 /**
@@ -90,19 +131,27 @@ void constructeurFile(int fd)
  * @param buff le buffer qui doit recevoir le contenu du fichier
  * @return int 
  */
-void readMap(int fd, unsigned char* buff, int* nbF/* titre et pos(x,y) */)
+void readMap(int fd, unsigned char* buff, unsigned char* x, unsigned char* y, unsigned char* nbF, unsigned char* titre)
 {
     int taille = 0;
     unsigned char lecture;
     lseek(fd, 0, SEEK_SET);
-    if(fd > 0){
-        /*lire uniquement la map 0 1 2 dans le buff*/
-        while( read(fd, &lecture, sizeof(unsigned char)) != 0)
-        {
-           buff[taille++] = lecture;
-           *nbF += lecture == 1;
-        }
-        /*ensuite lire les 2 autre info, (+taille pour le tire au debut?)*/
+    
+    /*lire uniquement la map 0 1 2 dans le buff*/
+    while( read(fd, &lecture, sizeof(unsigned char)) == sizeof(unsigned char))
+    {
+        buff[taille++] = lecture;
+        *nbF += lecture == 1;
+    }
+    /*ensuite lire les 2 autre info, (+taille pour le tire au debut?)*/
+    if(read(fd, x, sizeof(unsigned char) != sizeof(unsigned char))){
+        printf("err x: %d", *x);
+    }
+    if(read(fd, y, sizeof(unsigned char) != sizeof(unsigned char))){
+        printf("err y: %d", *y);
+    }
+    if(read(fd, nbF, sizeof(unsigned char) != sizeof(unsigned char))){
+        printf("err nbF: %d", *nbF);
     }
 }
 
@@ -111,27 +160,27 @@ void readMap(int fd, unsigned char* buff, int* nbF/* titre et pos(x,y) */)
  * 
  * @param decor 
  */
-void createSim(char* decor){
+int createSim(char* simFile, int sim_d, unsigned char* buff, unsigned char* x, unsigned char* y, unsigned char* nbF, unsigned char* titre){
     
-    int nbF;
-    int decor_d, sim_d;
-	unsigned char buffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2)];
-    char* path = malloc(sizeof(char) * strlen(decor) + 1);
+    /*int nbF = 0;*/
+    int decor_d;
+	/*unsigned char buffer[(LARGEUR2 - 2)*(HAUTEUR2 - 2)];*/
+    char* path = malloc(sizeof(char) * strlen(simFile) + 1);
 
-    strcat(path, getFileBase(decor));
-    strcat(path, ".sim");
+    strcat(path, getFileBase(simFile));
+    strcat(path, ".bin");
 
     /*On créé un fichier de simulation et on ouvre le decor*/
-    decor_d = openFile(decor);
-    sim_d = creat(path, S_IRWXU);
+    /*simFile = decor.sim*/
+    decor_d = openFile(path);
 
     /*On lit le decor dans le buffer*/
-    readMap(decor_d, buffer, &nbF);
+    readMap(decor_d, buff, x, y, nbF, titre);
     
     /*On copie le buffer dans la simulation*/
-    writeMap(buffer, sim_d, nbF);
+    writeMap(buff, sim_d, nbF);
 
-    printf("%s\n", buffer);
+    return sim_d;
 
 }
 
@@ -185,3 +234,32 @@ void insertElement(int fd, int x, int y, unsigned char element){
 }
 
 /*file size avec lseek seek_end*/
+
+
+void writeFallPosition(int fd, unsigned char x, unsigned char y){
+    
+    lseek(fd, (LARGEUR2 - 2)*(HAUTEUR2-2), SEEK_SET);
+    if( write(fd, &x, sizeof(unsigned char)) != sizeof(unsigned char)){
+        exit(EXIT_FAILURE);
+    };
+
+    lseek(fd, sizeof(unsigned char), SEEK_CUR);
+    if(write(fd, &y, sizeof(unsigned char)) != sizeof(unsigned char)){
+        exit(EXIT_FAILURE);
+    };
+
+}
+void writeNbF(int fd, unsigned char nb){
+    lseek(fd, (LARGEUR2 - 2)*(HAUTEUR2-2) + 2*sizeof(unsigned char), SEEK_SET);
+    if(write(fd, &nb, sizeof(unsigned char)) != sizeof(unsigned char)){
+        exit(EXIT_FAILURE);
+    };
+
+
+}
+void writeTitle(int fd, unsigned char c){
+    lseek(fd, 0, SEEK_END);
+    if(write(fd, &c, sizeof(unsigned char)) != sizeof(unsigned char)){
+        exit(EXIT_FAILURE);
+    };
+}
