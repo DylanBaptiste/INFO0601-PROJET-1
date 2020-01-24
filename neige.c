@@ -240,8 +240,6 @@ void refresh_game(){
 			if(matrice[i][j] == 1){
 				nbFdelete++;
 				placer_element(i, j, 0);
-				
-				
 			} 
 		}
 	}
@@ -265,11 +263,20 @@ int main(int argc, char** argv) {
 	
 	int i, j, k, startMenu, sourisX, sourisY, bouton;
 	int quitter = FALSE;
-	unsigned char* mapBuffer/*[(LARGEUR2 - 2)*(HAUTEUR2 - 2) +1];*/ = malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1 * sizeof(unsigned char));
 	WINDOW *box_jeu, *box_etat, *box_log;
+	unsigned char* mapBuffer/*[(LARGEUR2 - 2)*(HAUTEUR2 - 2) +1];*/ = malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1 * sizeof(unsigned char));
+	if(mapBuffer == NULL){
+        perror("erreur lors du malloc ");
+        exit(EXIT_FAILURE);
+    }
+	
 	
 	
 	title = malloc(255 * sizeof(unsigned char));
+	if(title == NULL){
+        perror("erreur lors du malloc ");
+        exit(EXIT_FAILURE);
+    }
 	nbFlocon = -1;
 
 	fenetre_log  = NULL;
@@ -279,26 +286,39 @@ int main(int argc, char** argv) {
 	mWidth  = LARGEUR2 - 2;
 	mHeight = HAUTEUR2 - 2;
 	matrice = (unsigned char**)malloc(mHeight * sizeof( unsigned char*));
+
+	if(matrice == NULL){
+        perror("erreur lors du malloc ");
+        exit(EXIT_FAILURE);
+    }
 	for(i = 0; i < mWidth; i++){
 		matrice[i] = (unsigned char*)malloc(mWidth * sizeof(unsigned char));
+		if(matrice[i] == NULL){
+			perror("erreur lors du malloc ");
+			exit(EXIT_FAILURE);
+    	}
 	}
 	
 	if(argc != 3){
-		fprintf(stderr, "mauvaise utilisation: ./neige [<type>] [<path>]\n");
+		printf("mauvaise utilisation: ./neige [<type>] [<path>]\n");
 		exit(EXIT_FAILURE);
 	}else{
 		if(strcmp(argv[1], "-N") != 0 && strcmp(argv[1], "-S") != 0){
-			fprintf(stderr, "mauvaise utilisation: ./neige [<type>] [<fichier>]\ntype:\n\t-N créer un nouveau decor\n\t-S lancer/reprendre une simulation\n");
+			printf("mauvaise utilisation: ./neige [<type>] [<fichier>]\ntype:\n\t-N créer un nouveau decor\n\t-S lancer/reprendre une simulation\n");
 			exit(EXIT_FAILURE);
 		}
 		if( strcmp(argv[1], "-N") == 0 ){
 			if(strcmp(getFileExt(argv[2]), "bin") == 0){
 				fd = openFile(argv[2]);
-				lseek(fd, 0, SEEK_SET);
+				if (lseek(fd, 0, SEEK_SET) == -1 ){
+					perror("Erreur Lors du LSEEK main");
+					exit(EXIT_FAILURE);
+    			}
+				
 				readMap(fd, mapBuffer, &restartX, &restartY, &nbFlocon, title);
 				mode = DEC_MODE;
 			}else{
-				fprintf(stderr, "le decor doit etre un fichier .bin\n");
+				printf("le decor doit etre un fichier .bin\n");
 				exit(EXIT_FAILURE);
 			}
 			
@@ -310,7 +330,7 @@ int main(int argc, char** argv) {
 				mode = SIM_MODE;
 			}
 			else{
-				fprintf(stderr, "la simulation doit etre un fichier .sim\n");
+				printf("la simulation doit etre un fichier .sim\n");
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -475,4 +495,5 @@ int main(int argc, char** argv) {
 	ncurses_stopper();
 
 	return EXIT_SUCCESS;
+
 }
