@@ -37,7 +37,7 @@ void ncurses_couleurs() {
 	/* Verification du support de la couleur */
 	if(has_colors() == FALSE) {
 		ncurses_stopper();
-		fprintf(stderr, "Le terminal ne supporte pas les couleurs.\n");
+		perror("Le terminal ne supporte pas les couleurs.\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -58,13 +58,13 @@ void ncurses_couleurs() {
 void ncurses_souris() {
 	if(!mousemask(ALL_MOUSE_EVENTS, NULL)) {
 		ncurses_stopper();
-		fprintf(stderr, "Erreur lors de l'initialisation de la souris.\n");
+		perror("Erreur lors de l'initialisation de la souris.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if(has_mouse() != TRUE) {
 		ncurses_stopper();
-		fprintf(stderr, "Aucune souris n'est détectée.\n");
+		perror("Aucune souris n'est détectée.\n");
 		exit(EXIT_FAILURE);
 	}
 }
@@ -99,12 +99,12 @@ int souris_getpos(int *x, int *y, int *bouton) {
  * @param l int La largeur de la fenêtre
  * @param y int La position Y de la fenêtre
  * @param x int La position X de la fenêtre
+ * 
+ * @return WINDOW* un pointeur sur la fenetre supérieur 
  */
 WINDOW* create_box(WINDOW** win, int h, int l, int y, int x){
-	
 	WINDOW *topWin = newwin(h, l, y, x);
 	*win = newwin(h - 2, l - 2, y + 1, x + 1);
-
 	box(topWin, 0, 0);
 	wrefresh(topWin);
 	return topWin;

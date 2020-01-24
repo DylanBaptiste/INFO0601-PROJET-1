@@ -6,273 +6,33 @@
 #include "ncurses_utils.h"
 #include "file_utils.h"
 
-#define LARGEUR1 80
-#define HAUTEUR1 5
-#define POSX1    0
-#define POSY1    0
+#include "config.h"
 
-#define LARGEUR2 60 
-#define HAUTEUR2 20  
-#define POSX2    POSX1
-#define POSY2    HAUTEUR1
 
-#define LARGEUR3 ( LARGEUR1 - LARGEUR2 )
-#define HAUTEUR3 HAUTEUR2  
-#define POSX3    LARGEUR2  
-#define POSY3    HAUTEUR1  
-
-#define SPAWN_RATIO	5  		/*1 chance sur SPAWN_RATIO qu'un flocon apparaisse dans chaque case de la prochaine generation*/
-#define START_MENU	2
-
-#define SIM_MODE 0
-#define DEC_MODE 1
-
-int mWidth, mHeight, nbGeneration, fd, mode;
+int mWidth, mHeight, fd, mode;
 unsigned char restartX, restartY, nbFlocon;
 unsigned char** matrice;
 WINDOW *fenetre_log, *fenetre_jeu, *fenetre_etat;
 unsigned char* title;
-void placer_element(int y, int x, unsigned char c){
-	
-	matrice[y][x] = c;
-	
-	switch (c)
-	{
-		case 0:
-			mvwprintw(fenetre_jeu, y, x, " ");
-			/*attron(COLOR_PAIR(0));
-			mvaddch(y + HAUTEUR1 + 1, x+1, ' ');
-			attroff(COLOR_PAIR(0));*/
-			break;
-		case 1 :
-		mvwprintw(fenetre_jeu, y, x, "X");
-		/*
-			attron(COLOR_PAIR(1));
-			mvaddch(y+HAUTEUR1 + 1, x+1, 'X');
-			attroff(COLOR_PAIR(1));
-			*/
-			break;
-		case 2:
-		mvwprintw(fenetre_jeu, y, x, "+");
-		/*
-			attron(COLOR_PAIR(2));
-			mvaddch(y+HAUTEUR1 + 1, x+1, '+');
-			attroff(COLOR_PAIR(2));*/
-			break;
-	
-		default:
-		mvwprintw(fenetre_jeu, y, x, "?");
-			/*mvaddch(y, x, '?');*/
-			break;
-	}
-
-	
-	
-	insertElement(fd, y, x, c);
-	
-
-	/*wprintw(fenetre_log, "\n(%d, %d) %d", y, x, c);
-	wrefresh(fenetre_log);*/
-	
-}
-
-int is_free(int y, int x){
-	return matrice[y][x] == 0;
-}
-
-void spawn(){
-	
-	int i, j, isStuck, nbNew;
-	srand(time(0));
-	
-	i = 0;
-	j = 0;
-	nbNew = 0;
-	nbGeneration++;
-
-	for( i = restartX == 255 ? mHeight - 2 : restartX; i >=  0; i--){
-		for(j = restartY == 255 ? mWidth  - 2 : restartY; j > 0 ; j--){
-			
-			isStuck = FALSE;
-
-			if(matrice[i][j] == 1){
-				
-				writeFallPosition(fd, i, j);
-				restartY = i;
-				restartX = j;
-
-				if(rand() % 2){
-					if(j > 1){
-
-						if(is_free(i+1, j-1)){
-							placer_element(i+1, j-1, 1);
-						}else{
-							if(is_free(i+1, j+1)){
-								placer_element(i+1, j+1, 1);
-							}else{
-								if(is_free(i+1, j)){
-									placer_element(i+1, j, 1);
-								}else{
-									
-									/*le flocon est blocké*/
-									isStuck = TRUE;
-								}
-							}
-						}
-						
-					}else{
-
-						if(is_free(i+1, j+1)){
-							placer_element(i+1, j+1, 1);
-						}else{
-							if(is_free(i+1, j)){
-								placer_element(i+1, j, 1);
-							}else{
-								/*le flocon est blocké*/
-								isStuck = TRUE;
-							}
-						}
-						
-					}
-					
-				}
-				else{
-					if(j < mWidth){
-
-						if(is_free(i+1, j+1)){
-							placer_element(i+1, j+1, 1);
-						}else{
-
-							if(is_free(i+1, j-1)){
-								placer_element(i+1, j-1, 1);
-							}else{
-								if(is_free(i+1, j)){
-									placer_element(i+1, j, 1);
-								}else{
-									/*le flocon est blocké*/
-									isStuck = TRUE;
-								}
-							}
-						}
-					}else{
-
-						if(is_free(i+1, j-1)){
-							placer_element(i+1, j-1, 1);
-						}else{
-							if(is_free(i+1, j)){
-								placer_element(i+1, j, 1);
-							}else{
-								/*le flocon est blocké*/
-								isStuck = TRUE;
-							}
-						}
-
-					}
-				}
-				
-				if(!isStuck){
-					placer_element(i, j, 0);
-				}
-				
-				/**chaque f**/
-				getch();
-				wrefresh(fenetre_jeu);
-				writeFallPosition(fd, 255, 255);
-				restartY = 255;
-				restartX = 255;
-			}
-			else{
-				/*
-				writeFallPosition(fd, 255, 255);
-				writeFallPosition(fd, i, j);
-				restartY = 255;
-				restartX = 255;*/
-
-			}
-		}
-		
-		
-	}
-
-	writeFallPosition(fd, 255, 255);
-	restartY = 255;
-	restartX = 255;
-
-	for(j = 0; j < mWidth; j++){
-		
-		if( is_free(0, j) && (rand() % SPAWN_RATIO + 1) == SPAWN_RATIO){
-			
-			/*getch();
-			wrefresh(fenetre_jeu);*/
-
-			placer_element(0, j, 1);
-			mvwprintw(fenetre_etat,0,0, "Nb flocons: %d     ", nbFlocon++);
-			wrefresh(fenetre_etat);
-			
-			writeNbF(fd, nbFlocon);
-			
-			nbNew++;
-		}
-		
-	}
-	if(nbNew > 0){
-
-		/*wprintw(fenetre_log, "\nNouveaux flocons: %d", nbNew);*/
-		mvwprintw(fenetre_etat, 0, 0, "Nb flocons: %d     ", nbFlocon);
-		
-		wrefresh(fenetre_log);
-	}
-
-	mvwprintw(fenetre_etat, 1, 0, "Generation: %d     ", nbGeneration);
-	wrefresh(fenetre_etat);
-
-	/*refresch au decalage total de chaque ligne et la génération de la premiere*/
-	wrefresh(fenetre_jeu);
-	
-}
-
-void refresh_game(){
-	int i,j, nbFdelete = 0;
-	nbGeneration = 0;
-	
-	for(i = 0; i < HAUTEUR2; i++){
-		for(j = 0; j < LARGEUR2; j++){
-			if(matrice[i][j] == 1){
-				nbFdelete++;
-				placer_element(i, j, 0);
-			} 
-		}
-	}
-
-	nbFlocon = 0;
-	writeNbF(fd, nbFlocon);
-
-	wprintw(fenetre_log, "\nRafraichissement (%d flocons supprimé(s))", nbFdelete);
-	
-	mvwprintw(fenetre_etat, 0, 0, "Nb flocons: %d     ", nbFlocon);
-	mvwprintw(fenetre_etat, 1, 0, "Generation: %d     ", nbGeneration);
-	
-	wrefresh(fenetre_log);
-	wrefresh(fenetre_jeu);
-	wrefresh(fenetre_etat);
-}
 
 
+void placer_element(int y, int x, unsigned char c, bool write);
+int is_free(int y, int x);
+void refresh_game();
+void generation();
 
 int main(int argc, char** argv) {
 	
 	int i, j, k, startMenu, sourisX, sourisY, bouton;
 	int quitter = FALSE;
 	WINDOW *box_jeu, *box_etat, *box_log;
-	unsigned char* mapBuffer/*[(LARGEUR2 - 2)*(HAUTEUR2 - 2) +1];*/ = malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1 * sizeof(unsigned char));
+	unsigned char* mapBuffer = malloc((LARGEUR2 - 2)*(HAUTEUR2 - 2) + 1 * sizeof(unsigned char));
 	if(mapBuffer == NULL){
         perror("erreur lors du malloc ");
         exit(EXIT_FAILURE);
     }
 	
-	
-	
-	title = malloc(255 * sizeof(unsigned char));
+	title = malloc(MAXFNAME * sizeof(unsigned char));
 	if(title == NULL){
         perror("erreur lors du malloc ");
         exit(EXIT_FAILURE);
@@ -285,19 +45,20 @@ int main(int argc, char** argv) {
 
 	mWidth  = LARGEUR2 - 2;
 	mHeight = HAUTEUR2 - 2;
-	matrice = (unsigned char**)malloc(mHeight * sizeof( unsigned char*));
+	matrice = malloc(mHeight * sizeof( unsigned char*));
 
 	if(matrice == NULL){
         perror("erreur lors du malloc ");
         exit(EXIT_FAILURE);
     }
 	for(i = 0; i < mWidth; i++){
-		matrice[i] = (unsigned char*)malloc(mWidth * sizeof(unsigned char));
+		matrice[i] = malloc(mWidth * sizeof(unsigned char));
 		if(matrice[i] == NULL){
 			perror("erreur lors du malloc ");
 			exit(EXIT_FAILURE);
     	}
 	}
+
 	
 	if(argc != 3){
 		printf("mauvaise utilisation: ./neige [<type>] [<path>]\n");
@@ -335,21 +96,6 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
-	 
-	printf("\nTitre: %s\nX: %d\nY:%d\nNbF:%d\n", title, restartX, restartY, nbFlocon);
-
-	
-	
-	/*k = 0;
-	for(i = 0; i < mHeight; i++){
-		for(j = 0; j < mWidth; j++, k++){
-			printf("%d", mapBuffer[k]);
-			if((( (k % (LARGEUR2-2)) - (LARGEUR2-3) ))==0){ printf("\n");}
-		}
-	}
-	printf("\n\n");*/
-	
-
 
 	ncurses_initialiser();
 
@@ -366,10 +112,9 @@ int main(int argc, char** argv) {
 
 	scrollok(fenetre_log, TRUE);	
 	
-	k = 0;
-	for(i = 0; i < mHeight; i++){
+	for(i = 0, k = 0; i < mHeight; i++){
 		for(j = 0; j < mWidth; j++, k++){
-			placer_element(i, j, mapBuffer[k]);
+			placer_element(i, j, mapBuffer[k], false);
 		}
 	}
 	
@@ -378,12 +123,12 @@ int main(int argc, char** argv) {
 		
 		startMenu = START_MENU;
 		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
-		mvwprintw(fenetre_etat, ++startMenu, 0, "Quitter:    q");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Quitter:    F2");
 		mvwprintw(fenetre_etat, ++startMenu, 0, "Rafraichir: r");
-		mvwprintw(fenetre_etat, ++startMenu, 0, "Generer:    ESPACE");
+		/*mvwprintw(fenetre_etat, ++startMenu, 0, "Generer:    ESPACE");*/
 		++startMenu;
 		mvwprintw(fenetre_etat, ++startMenu, 0, "Neige:      X");
-		mvwprintw(fenetre_etat, ++startMenu, 0, "Obstacle:   -");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Obstacle:   +");
 		mvwprintw(fenetre_etat, ++startMenu, 0, "Ratio:      1/%d", SPAWN_RATIO);
 		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
 
@@ -392,12 +137,12 @@ int main(int argc, char** argv) {
 		wrefresh(fenetre_jeu);
 		wrefresh(fenetre_etat);
 
+		timeout(500);
 		while(quitter == FALSE) {
 		
 			switch (getch())
 			{
-				case 'q':
-				case 'Q':
+				case KEY_F(2):
 					quitter = TRUE;
 					break;
 				
@@ -407,19 +152,17 @@ int main(int argc, char** argv) {
 					break;
 
 				default:
-					spawn();
+					generation();
 					break;
 			}
 				
 		}
-		close(fd);
-
 	}
 	else{
 
 		startMenu = START_MENU;
 		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
-		mvwprintw(fenetre_etat, ++startMenu, 0, "Quitter:    q");
+		mvwprintw(fenetre_etat, ++startMenu, 0, "Quitter:    F2");
 		++startMenu;
 		mvwprintw(fenetre_etat, ++startMenu, 0, "Obstacle:   +");
 		mvwprintw(fenetre_etat, ++startMenu, 0, "-------");
@@ -429,7 +172,7 @@ int main(int argc, char** argv) {
 
 		wrefresh(fenetre_jeu);
 		wrefresh(box_jeu);
-
+		
 		while(quitter == FALSE) {
 			i = getch();
 			if( (int)i == KEY_MOUSE){
@@ -437,12 +180,11 @@ int main(int argc, char** argv) {
 					sourisX--;
 					sourisY--;
 					if( (sourisX >= 0 && sourisX < (LARGEUR2 - 2) ) && ( (sourisY - POSY2) < HAUTEUR2 - 2 && (sourisY - POSY2) >= 0) ){
-						/*wprintw(fenetre_log, "\n(%d, %d)", sourisX, sourisY - POSY2);*/
 						
 						if( is_free(sourisY - POSY2, sourisX) ){
-							placer_element(sourisY - POSY2, sourisX, 2);
+							placer_element(sourisY - POSY2, sourisX, 2, true);
 						}else{
-							placer_element(sourisY - POSY2, sourisX , 0);
+							placer_element(sourisY - POSY2, sourisX , 0, true);
 						}
 						wrefresh(fenetre_jeu);
 						
@@ -456,12 +198,11 @@ int main(int argc, char** argv) {
 			else{
 				switch (i)
 				{
-					case 'q':
-					case 'Q':
+					case KEY_F(2):
 						quitter = TRUE;
 						break;
 					
-					case '\n' : case '\t': case '\r': case '\0': case 7: break;
+					case '\n' : case '\t': case '\r': case '\0': break;
 					case ' ':
 						wprintw(fenetre_log, "_");
 						wrefresh(fenetre_log);
@@ -474,26 +215,236 @@ int main(int argc, char** argv) {
 						break;
 				}
 			}
-
-			
-			
 		}
-		
-		close(fd);
 	}
 	
-	/*
-	for(i = 0; i < mWidth; i++){
-		free(matrice[i]);
+	close(fd);
+
+	free( matrice ); /*impossible de libérer les matrice[i] ?? -> double free or corruption (out) Aborted (core dumped) */
+	free( mapBuffer );
+	free( title );
+
+
+	if( ERR == delwin(fenetre_log)){
+		perror("Erreur delwin, tentative free...");	
+		free(fenetre_log);
+	}
+	if( ERR == delwin(fenetre_jeu)){
+		perror("Erreur delwin, tentative free...");	
+		free(fenetre_jeu);
+	}
+	if( ERR == delwin(fenetre_etat)){
+		perror("Erreur delwin, tentative free...");	
+		free(fenetre_etat);
+	}
+	if( ERR == delwin(box_log )){
+		perror("Erreur delwin, tentative free...");	
+		free(box_log);
+	}
+	if( ERR == delwin(box_jeu )){
+		perror("Erreur delwin, tentative free...");	
+		free(box_jeu);
+	}
+	if( ERR == delwin(box_etat)){
+		perror("Erreur delwin, tentative free...");	
+		free(box_etat);
 	}
 
-	delwin(fenetre_log);
-	delwin(fenetre_jeu);
-	delwin(fenetre_etat);
-	*/
-	
 	ncurses_stopper();
 
-	return EXIT_SUCCESS;
+	exit( EXIT_SUCCESS );
 
+}
+
+
+/*=== Définitions des fonctions ===*/
+
+
+int is_free(int y, int x){ return matrice[y][x] == 0; }
+
+
+void refresh_game(){
+	int i,j, nbFdelete = 0;
+	
+	for(i = 0; i < HAUTEUR2; i++){
+		for(j = 0; j < LARGEUR2; j++){
+			if(matrice[i][j] == 1){
+				nbFdelete++;
+				placer_element(i, j, 0, true);
+			} 
+		}
+	}
+
+	nbFlocon = 0;
+	writeNbF(fd, nbFlocon);
+
+	wprintw(fenetre_log, "\nRafraichissement (%d flocons supprimé(s))", nbFdelete);
+	
+	mvwprintw(fenetre_etat, 0, 0, "Nb flocons: %d     ", nbFlocon);
+	
+	wrefresh(fenetre_log);
+	wrefresh(fenetre_jeu);
+	wrefresh(fenetre_etat);
+}
+
+
+void generation(){
+	
+	int i, j, isStuck, nbNew;
+	srand(time(0));
+	
+	i = 0;
+	j = 0;
+	nbNew = 0;
+
+	for( i = restartX == DEFAULT_POSITION ? mHeight - 2 : restartX; i >=  0; i--){
+		for(j = restartY == DEFAULT_POSITION ? mWidth  - 2 : restartY; j > 0 ; j--){
+			
+			isStuck = FALSE;
+
+			if(matrice[i][j] == 1){
+				
+				writeFallPosition(fd, i, j);
+				restartY = i;
+				restartX = j;
+
+				if(rand() % 2){
+					if(j > 1){
+
+						if(is_free(i+1, j-1)){
+							placer_element(i+1, j-1, 1, true);
+						}else{
+							if(is_free(i+1, j+1)){
+								placer_element(i+1, j+1, 1, true);
+							}else{
+								if(is_free(i+1, j)){
+									placer_element(i+1, j, 1, true);
+								}else{
+									isStuck = TRUE;
+								}
+							}
+						}
+						
+					}else{
+
+						if(is_free(i+1, j+1)){
+							placer_element(i+1, j+1, 1, true);
+						}else{
+							if(is_free(i+1, j)){
+								placer_element(i+1, j, 1, true);
+							}else{
+								isStuck = TRUE;
+							}
+						}
+						
+					}
+					
+				}
+				else{
+					if(j < mWidth){
+
+						if(is_free(i+1, j+1)){
+							placer_element(i+1, j+1, 1, true);
+						}else{
+
+							if(is_free(i+1, j-1)){
+								placer_element(i+1, j-1, 1, true);
+							}else{
+								if(is_free(i+1, j)){
+									placer_element(i+1, j, 1, true);
+								}else{
+									isStuck = TRUE;
+								}
+							}
+						}
+					}else{
+
+						if(is_free(i+1, j-1)){
+							placer_element(i+1, j-1, 1, true);
+						}else{
+							if(is_free(i+1, j)){
+								placer_element(i+1, j, 1, true);
+							}else{
+								isStuck = TRUE;
+							}
+						}
+
+					}
+				}
+				
+				if(!isStuck){
+					placer_element(i, j, 0, true);
+					/**à chaque flocon**/
+					/* getch(); wrefresh(fenetre_jeu); 
+					*/
+				}
+				
+				
+				
+
+				writeFallPosition(fd, DEFAULT_POSITION, DEFAULT_POSITION);
+				restartY = DEFAULT_POSITION;
+				restartX = DEFAULT_POSITION;
+			}
+		}
+		
+		
+	}
+
+	writeFallPosition(fd, DEFAULT_POSITION, DEFAULT_POSITION);
+	restartY = DEFAULT_POSITION;
+	restartX = DEFAULT_POSITION;
+
+	for(j = 0; j < mWidth; j++){
+		
+		if( is_free(0, j) && (rand() % SPAWN_RATIO + 1) == SPAWN_RATIO){
+			
+			placer_element(0, j, 1, true);
+			mvwprintw(fenetre_etat,0,0, "Nb flocons: %d     ", nbFlocon++);
+			wrefresh(fenetre_etat);
+			
+			writeNbF(fd, nbFlocon);
+			
+			nbNew++;
+		}
+		
+	}
+	if(nbNew > 0){
+
+		mvwprintw(fenetre_etat, 0, 0, "Nb flocons: %d     ", nbFlocon);
+		
+		wrefresh(fenetre_log);
+	}
+
+	wrefresh(fenetre_etat);
+
+	wrefresh(fenetre_jeu);
+	
+}
+
+void placer_element(int y, int x, unsigned char c, bool write){
+	
+	matrice[y][x] = c;
+	
+	switch (c)
+	{
+		case 0:
+			mvwprintw(fenetre_jeu, y, x, " ");
+			break;
+		case 1 :
+			mvwprintw(fenetre_jeu, y, x, "X");
+			break;
+		case 2:
+			mvwprintw(fenetre_jeu, y, x, "+");
+			break;
+	
+		default:
+			mvwprintw(fenetre_jeu, y, x, "?");
+			break;
+	}
+
+	if( write == true){
+		insertElement(fd, y, x, c);
+	}
+	
 }
